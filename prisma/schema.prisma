@@ -23,19 +23,21 @@ model User {
 }
 
 model Chat {
-  id       BigInt     @id @default(autoincrement())
-  messages Message[]
-  users    UserChat[]
+  id         BigInt     @id @default(autoincrement())
+  created_at DateTime
+  messages   Message[]
+  users      UserChat[]
 
   @@map("chats")
 }
 
 model UserChat {
   user    User   @relation(fields: [user_id], references: [id])
-  user_id BigInt @unique
+  user_id BigInt
   Chat    Chat   @relation(fields: [chat_id], references: [id])
-  chat_id BigInt @unique
+  chat_id BigInt
 
+  @@unique([user_id, chat_id])
   @@map("chat_user")
 }
 
