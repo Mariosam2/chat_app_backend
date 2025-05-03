@@ -5,7 +5,7 @@ The database provider is MySQL but you can change it anytime by modifying the "s
 
 To migrate the databse:
 
-## npx prisma migrate dev --name"yourMigrationNAme" -init
+## npx prisma migrate dev --name"yourMigrationNAme" init
 
 To generate the prisma client:
 
