@@ -9,25 +9,46 @@ datasource db {
 }
 
 model User {
-  id         BigInt       @id @default(autoincrement())
-  username   String       @db.VarChar(255)
-  email      String       @db.VarChar(255)
-  password   String       @db.VarChar(255)
-  created_at DateTime
-  deleted_at DateTime?
-  chats      UsersChats[]
+  id               BigInt     @id @default(autoincrement())
+  username         String     @db.VarChar(255)
+  email            String     @db.VarChar(255)
+  password         String     @db.VarChar(255)
+  created_at       DateTime
+  deleted_at       DateTime?
+  chats            UserChat[]
+  sentMessages     Message[]  @relation("sender")
+  receivedMessages Message[]  @relation("receiver")
+
+  @@map("users")
 }
 
 model Chat {
-  id    BigInt       @id @default(autoincrement())
-  users UsersChats[]
+  id       BigInt     @id @default(autoincrement())
+  messages Message[]
+  users    UserChat[]
+
+  @@map("chats")
 }
 
-model UsersChats {
+model UserChat {
   user    User   @relation(fields: [user_id], references: [id])
   user_id BigInt @unique
   Chat    Chat   @relation(fields: [chat_id], references: [id])
   chat_id BigInt @unique
 
   @@map("chat_user")
+}
+
+model Message {
+  id          BigInt   @id @default(autoincrement())
+  content     String   @db.VarChar(500)
+  sender      User     @relation("sender", fields: [sender_id], references: [id])
+  receiver    User     @relation("receiver", fields: [receiver_id], references: [id])
+  sender_id   BigInt
+  receiver_id BigInt
+  Chat        Chat     @relation(fields: [chat_id], references: [id])
+  chat_id     BigInt
+  created_at  DateTime
+
+  @@map("messages")
 }
