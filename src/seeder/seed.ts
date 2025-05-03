@@ -27,7 +27,7 @@ async function insertUsers() {
     randomUsers.push(user);
   }
   //console.log(randomUsers);
-  const createMany = await prisma.user.createMany({
+  await prisma.user.createMany({
     data: randomUsers,
   });
 }
@@ -40,7 +40,7 @@ async function createChats() {
     };
     chats.push(chat);
   }
-  const createMany = await prisma.chat.createMany({
+  await prisma.chat.createMany({
     data: chats,
   });
 }
@@ -55,10 +55,13 @@ async function createMessages() {
       receiver_id: faker.number.bigInt({ min: 1, max: usersNum }),
       created_at: new Date(),
     };
-    messages.push(message);
+    //check if sender and receiver are not equal before pushing
+    if (message.sender_id !== message.receiver_id) {
+      messages.push(message);
+    }
   }
 
-  const createMany = await prisma.message.createMany({
+  await prisma.message.createMany({
     data: messages,
   });
 }
@@ -78,13 +81,6 @@ const hasDuplicates = (array: PairOfUsers[], needle: PairOfUsers) => {
   });
 };
 
-/* function isUserChat(obj: any): obj is UserChat {
-  return (
-    typeof (obj as UserChat).user_id === "bigint" &&
-    typeof (obj as UserChat).chat_id === "bigint"
-  );
-} */
-
 async function createUsersChats() {
   const usersChats: UserChat[] = [];
   const chatUsersArray: PairOfUsers[] = [];
@@ -93,6 +89,7 @@ async function createUsersChats() {
     const senderId = faker.number.bigInt({ min: 1, max: usersNum });
     const receiverId = faker.number.bigInt({ min: 1, max: usersNum });
     const chatId = BigInt(i + 1);
+
     //each chat should have 2 users only (no groups feature)
     // and 2 (pair) users should have 1 chat only
     const senderUserChat = {
@@ -106,12 +103,6 @@ async function createUsersChats() {
 
     const chatUsers = { sender_id: senderId, receiver_id: receiverId };
 
-    /* console.log(
-      chatUsersArray,
-      chatUsers,
-      hasDuplicates(chatUsersArray, chatUsers)
-    );
- */
     //check if a chat has the same pair of users multiple times
     // and check if sender and receiver are not equal
     if (!hasDuplicates(chatUsersArray, chatUsers) && senderId !== receiverId) {
@@ -121,7 +112,7 @@ async function createUsersChats() {
     }
   }
 
-  const createMany = await prisma.userChat.createMany({
+  await prisma.userChat.createMany({
     data: usersChats,
   });
 }
