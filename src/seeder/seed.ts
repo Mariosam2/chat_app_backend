@@ -16,7 +16,7 @@ const generatePassword = async (
 };
 
 async function insertUsers() {
-  const randomUsers: Omit<User, "id">[] = [];
+  const randomUsers: Omit<User, "id" | "uuid">[] = [];
   for (let i = 0; i < usersNum; i++) {
     const user = {
       username: faker.internet.username(),
@@ -35,7 +35,7 @@ async function insertUsers() {
 
 async function createChats() {
   chatRecords = await prisma.chat.count();
-  const chats: Omit<Chat, "id">[] = [];
+  const chats: Omit<Chat, "id" | "uuid">[] = [];
   for (let i = 0; i < chatsNum; i++) {
     const chat = {
       created_at: new Date(),
@@ -48,7 +48,7 @@ async function createChats() {
 }
 
 async function createMessages() {
-  const messages: Omit<Message, "id">[] = [];
+  const messages: Omit<Message, "id" | "uuid">[] = [];
   for (let i = 0; i < 100; i++) {
     const message = {
       content: faker.word.words(5),
@@ -160,7 +160,7 @@ async function createUsersChats() {
 
     if (
       !hasDuplicates(chatUsersArray, chatUsers) &&
-      !doUsersHaveChatAlready && 
+      !doUsersHaveChatAlready &&
       isUserChatInDb.length === 0 &&
       senderId !== receiverId
     ) {

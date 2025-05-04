@@ -10,6 +10,7 @@ datasource db {
 
 model User {
   id               BigInt     @id @default(autoincrement())
+  uuid             String     @unique @default(uuid())
   username         String     @db.VarChar(255)
   email            String     @db.VarChar(255)
   password         String     @db.VarChar(255)
@@ -24,6 +25,7 @@ model User {
 
 model Chat {
   id         BigInt     @id @default(autoincrement())
+  uuid       String     @unique @default(uuid())
   created_at DateTime
   messages   Message[]
   users      UserChat[]
@@ -43,6 +45,7 @@ model UserChat {
 
 model Message {
   id          BigInt   @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
   content     String   @db.VarChar(500)
   sender      User     @relation("sender", fields: [sender_id], references: [id])
   receiver    User     @relation("receiver", fields: [receiver_id], references: [id])
