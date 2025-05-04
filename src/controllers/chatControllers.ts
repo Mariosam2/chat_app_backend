@@ -11,8 +11,7 @@ const getUserChats = async (
 ) => {
   try {
     if (!req.params?.userUUId) {
-      const httpError = createHttpError(400, "bad request");
-      throw httpError;
+      throw createHttpError(400, "bad request");
     }
 
     const userChats = await prisma.user.findFirst({
@@ -22,8 +21,7 @@ const getUserChats = async (
     });
 
     if (!userChats) {
-      const httpError = createHttpError(404, "not found");
-      throw httpError;
+      throw createHttpError(404, "not found");
     }
 
     res.status(200).json({
@@ -38,8 +36,7 @@ const getUserChats = async (
 const createChat = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.body?.senderUUID || !req.body?.receiverUUID) {
-      const httpError = createHttpError(400, "bad request");
-      throw httpError;
+      throw createHttpError(400, "bad request");
     }
 
     //get sender and receiver
@@ -59,8 +56,7 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
     });
 
     if (!sender || !receiver) {
-      const httpError = createHttpError(404, "not found");
-      throw httpError;
+      throw createHttpError(404, "not found");
     }
 
     //create the chat and make the relations to the user
@@ -91,8 +87,7 @@ const deleteForMe = async (req: Request, res: Response, next: NextFunction) => {
       !req.params?.userToDisconnectUUID &&
       typeof req.params?.userToDisconnectUUID !== "string"
     ) {
-      const httpError = createHttpError(400, "bad request");
-      throw httpError;
+      throw createHttpError(400, "bad request");
     }
 
     const chatToDisconnectUUID = req.params.chatToDisconnectUUID;
@@ -111,8 +106,7 @@ const deleteForMe = async (req: Request, res: Response, next: NextFunction) => {
     });
 
     if (!chatToDisconnect || !userToDisconnect) {
-      const httpError = createHttpError(404, "not found");
-      throw httpError;
+      throw createHttpError(404, "not found");
     }
     //drop the table in the userchat having this chat id and user id
     await prisma.userChat.delete({
@@ -140,8 +134,7 @@ const deleteForAll = async (
 ) => {
   try {
     if (!req.params?.chatUUID && typeof req.params?.chatUUID !== "string") {
-      const httpError = createHttpError(400, "bad request");
-      throw httpError;
+      throw createHttpError(400, "bad request");
     }
     const chatToDeleteUUID = req.params.chatUUID;
 
@@ -152,8 +145,7 @@ const deleteForAll = async (
     });
 
     if (!chatToDelete) {
-      const httpError = createHttpError(404, "not found");
-      throw httpError;
+      throw createHttpError(404, "not found");
     }
     await prisma.chat.delete({
       where: {
