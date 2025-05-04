@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 const chatsNum = 20;
 const usersNum = 10;
+let chatRecords = 0;
 
 const generatePassword = async (
   plaintextPassword: string,
@@ -33,6 +34,7 @@ async function insertUsers() {
 }
 
 async function createChats() {
+  chatRecords = await prisma.chat.count();
   const chats: Omit<Chat, "id">[] = [];
   for (let i = 0; i < chatsNum; i++) {
     const chat = {
@@ -70,6 +72,7 @@ interface PairOfUsers {
   sender_id: bigint;
   receiver_id: bigint;
 }
+
 //a duplicate is considered on a pair of users (1,4) === (4,1)=> true
 const hasDuplicates = (array: PairOfUsers[], needle: PairOfUsers) => {
   return array.some((element) => {
@@ -81,6 +84,36 @@ const hasDuplicates = (array: PairOfUsers[], needle: PairOfUsers) => {
   });
 };
 
+//a duplicate is considered on a pair of users (1,4) === (4,1)=> true
+const hasDuplicatesInDb = async (needle: PairOfUsers) => {
+  //get sender chat ids
+  const senderChatIds = await prisma.userChat.findMany({
+    where: {
+      user_id: needle.sender_id,
+    },
+    select: {
+      chat_id: true,
+    },
+  });
+
+  //get the receiver chat ids and map them to an array of chat ids
+  const receiverChatIds = await prisma.userChat.findMany({
+    where: {
+      user_id: needle.receiver_id,
+    },
+    select: {
+      chat_id: true,
+    },
+  });
+
+  const receiverChatIdsArr = receiverChatIds.map((element) => element.chat_id);
+
+  //check if one of senderChatIds is contained in the array of receiver chat ids
+  return senderChatIds.some((senderChatId) =>
+    receiverChatIdsArr.includes(senderChatId.chat_id)
+  );
+};
+
 async function createUsersChats() {
   const usersChats: UserChat[] = [];
   const chatUsersArray: PairOfUsers[] = [];
@@ -88,7 +121,9 @@ async function createUsersChats() {
   for (let i = 0; i < chatsNum; i++) {
     const senderId = faker.number.bigInt({ min: 1, max: usersNum });
     const receiverId = faker.number.bigInt({ min: 1, max: usersNum });
-    const chatId = BigInt(i + 1);
+    //everytime i run seeder i want to start from the number of chats already present inside database
+    //console.log(typeof chatRecords);
+    const chatId = BigInt(i + (chatRecords === 0 ? 1 : chatRecords));
 
     //each chat should have 2 users only (no groups feature)
     // and 2 (pair) users should have 1 chat only
@@ -104,8 +139,31 @@ async function createUsersChats() {
     const chatUsers = { sender_id: senderId, receiver_id: receiverId };
 
     //check if a chat has the same pair of users multiple times
-    // and check if sender and receiver are not equal
-    if (!hasDuplicates(chatUsersArray, chatUsers) && senderId !== receiverId) {
+    //check if sender and receiver are not equal
+    //check if sender or receiver obj is already in database
+    const isUserChatInDb = await prisma.userChat.findMany({
+      where: {
+        OR: [
+          {
+            user_id: senderUserChat.user_id,
+            chat_id: senderUserChat.chat_id,
+          },
+          {
+            user_id: receiverUserChat.user_id,
+            chat_id: receiverUserChat.chat_id,
+          },
+        ],
+      },
+    });
+
+    const doUsersHaveChatAlready = await hasDuplicatesInDb(chatUsers);
+
+    if (
+      !hasDuplicates(chatUsersArray, chatUsers) &&
+      !doUsersHaveChatAlready && 
+      isUserChatInDb.length === 0 &&
+      senderId !== receiverId
+    ) {
       //console.log(usersChats);
       chatUsersArray.push(chatUsers);
       usersChats.push(senderUserChat, receiverUserChat);
