@@ -5,9 +5,10 @@ import { errorHandler } from "./middlewares/errorHandler";
 import chatRoutes from "./routes/chatRoutes";
 import messageRoutes from "./routes/messageRoutes";
 import userRoutes from "./routes/userRoutes";
+import path from "path";
 
 const app = express();
-
+app.use(express.static("public"));
 app.use(express.json());
 app.use("/api/users", userRoutes);
 app.use("/api/chats", chatRoutes);
