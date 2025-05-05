@@ -171,9 +171,9 @@ const isEditableMessage = (obj: any): obj is EditableMessage => {
 
 const editMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { messageUUID } = req.params;
+    const { messageUUID: messageToEditUUID } = req.params;
 
-    if (!checkRequestData(messageUUID) || !isEditableMessage(req.body)) {
+    if (!checkRequestData(messageToEditUUID) || !isEditableMessage(req.body)) {
       throw createHttpError(400, "bad request");
     }
 
@@ -181,7 +181,7 @@ const editMessage = async (req: Request, res: Response, next: NextFunction) => {
 
     const editedMessage = await prisma.message.update({
       where: {
-        uuid: messageUUID,
+        uuid: messageToEditUUID,
       },
       data: editableMessage,
     });
@@ -206,14 +206,14 @@ const deleteMessageForUser = async (
 ) => {
   try {
     //to delete a message for user  we just remove sender_id
-    const { messageUUID } = req.params;
-    if (!checkRequestData(messageUUID)) {
+    const { messageUUID: messageToDisconnectUUID } = req.params;
+    if (!checkRequestData(messageToDisconnectUUID)) {
       throw createHttpError(400, "bad request");
     }
 
     const messageToDisconnect = await prisma.message.update({
       where: {
-        uuid: messageUUID,
+        uuid: messageToDisconnectUUID,
       },
       data: {
         sender_id: null,
@@ -239,15 +239,15 @@ const deleteMessageForAll = async (
   next: NextFunction
 ) => {
   try {
-    const { messageUUID } = req.params;
+    const { messageUUID: messageToDeleteUUID } = req.params;
 
-    if (!checkRequestData(messageUUID)) {
+    if (!checkRequestData(messageToDeleteUUID)) {
       throw createHttpError(400, "bad request");
     }
 
     const messageToDelete = await prisma.message.delete({
       where: {
-        uuid: messageUUID,
+        uuid: messageToDeleteUUID,
       },
     });
 

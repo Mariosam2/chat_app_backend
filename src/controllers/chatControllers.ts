@@ -130,8 +130,8 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
 
 const deleteForMe = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { chatToDisconnectUUID } = req.params;
-    const { userToDisconnectUUID } = req.params;
+    const { chatUUID: chatToDisconnectUUID } = req.params;
+    const { userUUID: userToDisconnectUUID } = req.params;
 
     if (checkRequestData(chatToDisconnectUUID, userToDisconnectUUID)) {
       throw createHttpError(400, "bad request");
@@ -177,7 +177,7 @@ const deleteForAll = async (
   next: NextFunction
 ) => {
   try {
-    const { chatToDeleteUUID } = req.params;
+    const { chatUUID: chatToDeleteUUID } = req.params;
 
     if (checkRequestData(chatToDeleteUUID)) {
       throw createHttpError(400, "bad request");

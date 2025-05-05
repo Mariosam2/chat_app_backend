@@ -14,10 +14,10 @@ router.get("/:chatUUID", getChatMessages);
 //save the message in a chat sent via body of the request
 router.post("/", createMessage);
 
-router.put("/:messageId", editMessage);
+router.put("/:messageUUID", editMessage);
 //set to null the foreign key to drop the relation (User one-to-many Messages)
-router.put("/:messageId", deleteMessageForUser);
+router.put("/:messageUUID", deleteMessageForUser);
 
-router.delete("/:messageId", deleteMessageForAll);
+router.delete("/:messageUUID", deleteMessageForAll);
 
 export default router;
