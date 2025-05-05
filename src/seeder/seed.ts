@@ -1,4 +1,4 @@
-import { PrismaClient, User, Chat, Message, UserChat } from "../prisma/client";
+import { PrismaClient, User, Chat, Message, UserChat } from "../../client";
 import { faker } from "@faker-js/faker";
 import bcrypt from "bcrypt";
 const prisma = new PrismaClient();
@@ -16,7 +16,7 @@ const generatePassword = async (
 };
 
 async function insertUsers() {
-  const randomUsers: Omit<User, "id" | "uuid">[] = [];
+  const randomUsers: Omit<User, "id" | "uuid" | "profile_picture">[] = [];
   for (let i = 0; i < usersNum; i++) {
     const user = {
       username: faker.internet.username(),

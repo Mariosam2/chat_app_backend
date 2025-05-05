@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { checkRequestData, checkAndFindMatches } from "./helpers";
 import createHttpError from "http-errors";
-import { PrismaClient } from "../prisma/client";
+import { PrismaClient } from "../../client";
 
 const prisma = new PrismaClient();
 //TODO: refactoring see messagecontrollers
