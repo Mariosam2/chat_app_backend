@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { checkRequestData, checkAndFindMatches } from "./helpers";
-import createHttpError from "http-errors";
+import createHttpError, { HttpError } from "http-errors";
 import { PrismaClient } from "../../client";
-
+import validator from "validator";
+//TODO: use validator to validate uuids and use P2001 P2025????????? for 404
 const prisma = new PrismaClient();
 
 const getUserChats = async (
@@ -11,12 +12,13 @@ const getUserChats = async (
   next: NextFunction
 ) => {
   try {
-    const { userUUID } = req.params;
-
-    if (!checkRequestData(userUUID)) {
+    if (!req.params?.userUUID || !validator.isUUID(req.params?.userUUID, 4)) {
       throw createHttpError(400, "bad request");
     }
-    const temp = await prisma.user.findUnique({
+
+    const { userUUID } = req.params;
+
+    const userChats = await prisma.user.findUniqueOrThrow({
       where: {
         uuid: userUUID,
       },
@@ -29,38 +31,45 @@ const getUserChats = async (
       },
     });
 
-    if (temp !== null) {
-      const userChatIds = temp.chats.map((chatIdObj) => chatIdObj.chat_id);
-      const userChats = await prisma.chat.findMany({
-        where: {
-          id: { in: userChatIds },
-        },
-        select: {
-          uuid: true,
-        },
-      });
+    const userChatIDS = userChats.chats.map((chatIdObj) => chatIdObj.chat_id);
+    const userChatsUUIDS = await prisma.chat.findMany({
+      where: {
+        id: { in: userChatIDS },
+      },
+      select: {
+        uuid: true,
+      },
+    });
 
-      res.status(200).json({
-        success: true,
-        chats: userChats.map((userChat) => userChat.uuid),
-      });
-    } else {
-      throw createHttpError(404, "not found");
+    res.status(200).json({
+      success: true,
+      chats: userChatsUUIDS.map((userChat) => userChat.uuid),
+    });
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
     }
-  } catch (err) {
     next(err);
   }
 };
 
 const createChat = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { senderUUID, receiverUUID } = req.body;
-
-    if (!checkRequestData(senderUUID, receiverUUID)) {
+    if (
+      !req.body?.senderUUID ||
+      !validator.isUUID(req.body?.senderUUID, 4) ||
+      !req.body?.receiverUUID ||
+      !validator.isUUID(req.body?.receiverUUID)
+    ) {
       throw createHttpError(400, "bad request");
     }
 
-    const sender = await prisma.user.findUnique({
+    const { senderUUID, receiverUUID } = req.body;
+
+    const sender = await prisma.user.findUniqueOrThrow({
       where: {
         uuid: senderUUID,
       },
@@ -69,7 +78,7 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
       },
     });
 
-    const receiver = await prisma.user.findUnique({
+    const receiver = await prisma.user.findUniqueOrThrow({
       where: {
         uuid: receiverUUID,
       },
@@ -77,10 +86,6 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
         chats: { select: { chat_id: true } },
       },
     });
-
-    if (!sender || !receiver) {
-      throw createHttpError(404, "not found");
-    }
 
     const senderChatIds = sender.chats.map((chat) => chat.chat_id);
     const receiverChatIds = receiver.chats.map((chat) => chat.chat_id);
@@ -96,62 +101,73 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
     )[1];
 
     if (usersHaveChatAlready && chatInCommonId !== null) {
-      //if the users have a chat already, return the chat uuid as a response
-      const { uuid: chatInCommonUUID } = await prisma.chat.findUniqueOrThrow({
-        where: {
-          id: chatInCommonId,
-        },
-      });
-
-      res.status(200).json({
-        success: true,
-        message: "users have a chat already",
-        chat: chatInCommonUUID,
-      });
-    } else {
-      //if users dont have a chat, create a new one
-      await prisma.chat.create({
-        data: {
-          created_at: new Date(),
-          users: {
-            create: [{ user_id: sender.id }, { user_id: receiver.id }],
-          },
-        },
-      });
-      res.status(200).json({
-        success: true,
-        message: "chat created successfully",
-      });
+      throw createHttpError(400, "users have a chat already");
     }
-  } catch (err) {
+
+    //if users dont have a chat, create a new one
+    await prisma.chat.create({
+      data: {
+        users: {
+          create: [{ user_id: sender.id }, { user_id: receiver.id }],
+        },
+      },
+    });
+    res.status(200).json({
+      success: true,
+      message: "chat created successfully",
+    });
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      //in this case if a chat is not found it gets created, so only sender and receiver queries
+      //can throw an error
+      throw createHttpError(404, "sender or receiver not found");
+    }
     next(err);
   }
 };
 
-const deleteForMe = async (req: Request, res: Response, next: NextFunction) => {
+const deleteChatForUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { chatUUID: chatToDisconnectUUID } = req.params;
-    const { userUUID: userToDisconnectUUID } = req.params;
-
-    if (checkRequestData(chatToDisconnectUUID, userToDisconnectUUID)) {
+    if (
+      !req.params?.chatUUID ||
+      !validator.isUUID(req.params?.chatUUID, 4) ||
+      !req.params?.userUUID ||
+      !validator.isUUID(req.params?.userUUID, 4)
+    ) {
+      console.log(req.params);
       throw createHttpError(400, "bad request");
     }
 
-    const chatToDisconnect = await prisma.chat.findFirst({
+    const { chatUUID: chatToDisconnectUUID } = req.params;
+    const { userUUID: userToDisconnectUUID } = req.params;
+
+    const chatToDisconnect = await prisma.chat.findUniqueOrThrow({
       where: {
         uuid: chatToDisconnectUUID,
       },
     });
 
-    const userToDisconnect = await prisma.user.findFirst({
+    const userToDisconnect = await prisma.user.findUniqueOrThrow({
       where: {
         uuid: userToDisconnectUUID,
       },
     });
 
-    if (!chatToDisconnect || !userToDisconnect) {
-      throw createHttpError(404, "not found");
-    }
+    //check if they are related first
+
+    await prisma.userChat.findUniqueOrThrow({
+      where: {
+        user_id_chat_id: {
+          user_id: userToDisconnect.id,
+          chat_id: chatToDisconnect.id,
+        },
+      },
+    });
+
     //drop the table in the userchat having this chat id and user id
     await prisma.userChat.delete({
       where: {
@@ -166,32 +182,38 @@ const deleteForMe = async (req: Request, res: Response, next: NextFunction) => {
       success: true,
       message: "chat deleted for user only",
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      if (err.meta.modelName) {
+        throw createHttpError(404, "this user doesn't have this chat");
+      }
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
     next(err);
   }
 };
 
-const deleteForAll = async (
+const deleteChatForAll = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { chatUUID: chatToDeleteUUID } = req.params;
-
-    if (checkRequestData(chatToDeleteUUID)) {
+    if (!req.params?.chatUUID || !validator.isUUID(req.params?.chatUUID, 4)) {
       throw createHttpError(400, "bad request");
     }
 
-    const chatToDelete = await prisma.chat.findFirst({
+    const { chatUUID: chatToDeleteUUID } = req.params;
+
+    const chatToDelete = await prisma.chat.findUniqueOrThrow({
       where: {
         uuid: chatToDeleteUUID,
       },
     });
 
-    if (!chatToDelete) {
-      throw createHttpError(404, "not found");
-    }
     await prisma.chat.delete({
       where: {
         id: chatToDelete.id,
@@ -201,9 +223,17 @@ const deleteForAll = async (
       success: true,
       message: "chat deleted for all successfully",
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
+
+    console.log(err);
     next(err);
   }
 };
 
-export { getUserChats, createChat, deleteForMe, deleteForAll };
+export { getUserChats, createChat, deleteChatForUser, deleteChatForAll };

@@ -2,8 +2,8 @@ import { Router } from "express";
 import {
   getUserChats,
   createChat,
-  deleteForMe,
-  deleteForAll,
+  deleteChatForUser,
+  deleteChatForAll,
 } from "../controllers/chatControllers";
 const router = Router();
 
@@ -12,7 +12,7 @@ router.get("/:userUUID", getUserChats);
 //handled using request body
 router.post("/", createChat);
 //delete the table in userchat to delete only for user
-router.delete("/:chatUUID/:userUUID", deleteForMe);
-router.delete("/:chatUUID", deleteForAll);
+router.delete("/:chatUUID/:userUUID", deleteChatForUser);
+router.delete("/:chatUUID", deleteChatForAll);
 
 export default router;

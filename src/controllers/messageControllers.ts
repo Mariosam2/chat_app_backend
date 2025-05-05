@@ -4,7 +4,7 @@ import { Message, PrismaClient } from "../../client";
 import createHttpError from "http-errors";
 
 const prisma = new PrismaClient();
-
+//TODO: use validator to validate uuids and use P2001 for 404
 const getUserMessages = async (
   req: Request,
   res: Response,
@@ -104,16 +104,15 @@ const checkMessageCreation = async (payload: messagePayload) => {
         },
       });
 
-      const message: Omit<Message, "id" | "uuid"> = {
+      const newMessage: Omit<Message, "id" | "uuid" | "created_at"> = {
         content: payload.content,
         sender_id: messageSender.id,
         receiver_id: messageReceiver.id,
         chat_id: messageChat.id,
-        created_at: new Date(),
       };
 
       await prisma.message.create({
-        data: message,
+        data: newMessage,
       });
 
       return true;

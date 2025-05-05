@@ -16,13 +16,15 @@ const generatePassword = async (
 };
 
 async function insertUsers() {
-  const randomUsers: Omit<User, "id" | "uuid" | "profile_picture">[] = [];
+  const randomUsers: Omit<
+    User,
+    "id" | "uuid" | "profile_picture" | "created_at"
+  >[] = [];
   for (let i = 0; i < usersNum; i++) {
     const user = {
       username: faker.internet.username(),
       email: faker.internet.email(),
       password: await generatePassword("strongpassword", 10),
-      created_at: new Date(),
       deleted_at: null,
     };
     randomUsers.push(user);
@@ -35,27 +37,22 @@ async function insertUsers() {
 
 async function createChats() {
   chatRecords = await prisma.chat.count();
-  const chats: Omit<Chat, "id" | "uuid">[] = [];
-  for (let i = 0; i < chatsNum; i++) {
-    const chat = {
-      created_at: new Date(),
-    };
-    chats.push(chat);
-  }
+  const chats: Omit<Chat, "id" | "uuid" | "created_at">[] = new Array(
+    chatsNum
+  ).fill({});
   await prisma.chat.createMany({
     data: chats,
   });
 }
 
 async function createMessages() {
-  const messages: Omit<Message, "id" | "uuid">[] = [];
+  const messages: Omit<Message, "id" | "uuid" | "created_at">[] = [];
   for (let i = 0; i < 100; i++) {
     const message = {
       content: faker.word.words(5),
       chat_id: faker.number.bigInt({ min: 1, max: chatsNum }),
       sender_id: faker.number.bigInt({ min: 1, max: usersNum }),
       receiver_id: faker.number.bigInt({ min: 1, max: usersNum }),
-      created_at: new Date(),
     };
     //check if sender and receiver are not equal before pushing
     if (message.sender_id !== message.receiver_id) {
@@ -115,7 +112,7 @@ const hasDuplicatesInDb = async (needle: PairOfUsers) => {
 };
 
 async function createUsersChats() {
-  const usersChats: UserChat[] = [];
+  const usersChats: Omit<UserChat, "id">[] = [];
   const chatUsersArray: PairOfUsers[] = [];
 
   for (let i = 0; i < chatsNum; i++) {

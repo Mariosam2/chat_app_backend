@@ -4,7 +4,7 @@ import { PrismaClient } from "../../client";
 import createHttpError from "http-errors";
 
 const prisma = new PrismaClient();
-
+//TODO: use validator to validate uuids and use P2001 for 404
 const getUserData = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { userUUID } = req.params;
@@ -152,7 +152,9 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
     next(err);
   }
 };
+
 const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+  //TODO: delete chat relations and messages relations
   try {
     const { userUUID } = req.params;
 

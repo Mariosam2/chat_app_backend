@@ -11,11 +11,11 @@ datasource db {
 model User {
   id               BigInt     @id @default(autoincrement())
   uuid             String     @unique @default(uuid())
-  username         String     @db.VarChar(255)
+  username         String     @unique
   profile_picture  String?    @default("/images/default_pfp.png") @db.VarChar(255)
-  email            String     @db.VarChar(255)
+  email            String     @unique
   password         String     @db.VarChar(255)
-  created_at       DateTime
+  created_at       DateTime   @default(now())
   deleted_at       DateTime?
   chats            UserChat[]
   sentMessages     Message[]  @relation("sender")
@@ -27,7 +27,7 @@ model User {
 model Chat {
   id         BigInt     @id @default(autoincrement())
   uuid       String     @unique @default(uuid())
-  created_at DateTime
+  created_at DateTime   @default(now())
   messages   Message[]
   users      UserChat[]
 
@@ -35,12 +35,12 @@ model Chat {
 }
 
 model UserChat {
-  user    User   @relation(fields: [user_id], references: [id])
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
   user_id BigInt
-  Chat    Chat   @relation(fields: [chat_id], references: [id])
+  Chat    Chat   @relation(fields: [chat_id], references: [id], onDelete: Cascade)
   chat_id BigInt
 
-  @@unique([user_id, chat_id])
+  @@id([user_id, chat_id])
   @@map("chat_user")
 }
 
@@ -54,7 +54,7 @@ model Message {
   receiver_id BigInt
   Chat        Chat     @relation(fields: [chat_id], references: [id], onDelete: Cascade)
   chat_id     BigInt
-  created_at  DateTime
+  created_at  DateTime @default(now())
 
   @@map("messages")
 }
