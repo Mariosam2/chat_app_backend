@@ -1,8 +1,8 @@
 import { Router } from "express";
 import {
   getUserData,
-  register,
-  login,
+  getChatUsers,
+  getMessageUsers,
   editUser,
   deleteUser,
 } from "../controllers/userControllers";
@@ -11,9 +11,9 @@ const router = Router();
 
 router.get("/:userUUID", getUserData);
 
-router.post("/register", register);
+router.get("/:chatUUID", getChatUsers);
 
-router.post("/login", login);
+router.get("/:messageUUID", getMessageUsers);
 
 router.put("/:userUUID", editUser);
 

@@ -4,7 +4,7 @@ import createHttpError from "http-errors";
 import { PrismaClient } from "../../client";
 
 const prisma = new PrismaClient();
-//TODO: refactoring see messagecontrollers
+
 const getUserChats = async (
   req: Request,
   res: Response,

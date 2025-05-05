@@ -179,16 +179,12 @@ const editMessage = async (req: Request, res: Response, next: NextFunction) => {
 
     const editableMessage: EditableMessage = req.body;
 
-    const editedMessage = await prisma.message.update({
+    await prisma.message.update({
       where: {
         uuid: messageToEditUUID,
       },
       data: editableMessage,
     });
-
-    if (!editedMessage) {
-      throw createHttpError(424, "unprocessable content");
-    }
 
     res.status(200).json({
       success: true,
