@@ -1,19 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-
+import { checkRequestData } from "./helpers";
 import { Message, PrismaClient } from "../prisma/client";
 import createHttpError from "http-errors";
 
 const prisma = new PrismaClient();
-
-const checkRequestData = (...data: any[]) => {
-  for (let i = 0; i < data.length; i++) {
-    if (!data[i] || typeof data[i] !== "string") {
-      return false;
-    }
-
-    return true;
-  }
-};
 
 const getUserMessages = async (
   req: Request,
