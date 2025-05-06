@@ -2,22 +2,24 @@ import { Request, Response, NextFunction } from "express";
 import { checkRequestData } from "./helpers";
 import { Message, PrismaClient } from "../../client";
 import createHttpError from "http-errors";
+import { UUIDVersion } from "validator";
+import { UUID } from "crypto";
 
 const prisma = new PrismaClient();
-//TODO: use validator to validate uuids and use P2001 for 404
+
 const getUserMessages = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { userUUID } = req.params;
-
-    if (!checkRequestData(userUUID)) {
+    if (!checkRequestData(req.params?.userUUID)) {
       throw createHttpError(400, "bad request");
     }
 
-    const userMessages = await prisma.user.findFirst({
+    const { userUUID } = req.params;
+
+    const userMessages = await prisma.user.findUniqueOrThrow({
       where: {
         uuid: userUUID,
       },
@@ -32,63 +34,83 @@ const getUserMessages = async (
       },
     });
 
-    if (!userMessages) {
-      throw createHttpError(404, "not found");
-    }
-
     res.status(200).json({
       success: true,
       messages: userMessages,
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
+    //console.log(err);
     next(err);
   }
 };
 
-const getChatMessages = (req: Request, res: Response, next: NextFunction) => {
+const getChatMessages = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { chatUUID } = req.params;
-
-    if (!checkRequestData(chatUUID)) {
+    if (!checkRequestData(req.params?.chatUUID)) {
       throw createHttpError(400, "bad request");
     }
 
-    const chatMessages = prisma.chat.findFirst({
+    const { chatUUID } = req.params;
+
+    const chatMessages = await prisma.chat.findUniqueOrThrow({
       where: {
         uuid: chatUUID,
       },
 
       select: {
-        messages: { select: { uuid: true, content: true, created_at: true } },
+        messages: {
+          select: {
+            uuid: true,
+            content: true,
+            created_at: true,
+            sender: { select: { uuid: true } },
+            receiver: { select: { uuid: true } },
+          },
+        },
       },
     });
-
-    if (!chatMessages) {
-      throw createHttpError(404, "not found");
-    }
 
     res.status(200).json({
       success: true,
       messages: chatMessages,
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
     next(err);
   }
 };
 
-interface messagePayload {
-  chatUUID: string;
-  senderUUID: string;
-  receiverUUID: string;
+type MessagePayload = {
+  chatUUID: UUID;
+  senderUUID: UUID;
+  receiverUUID: UUID;
   content: string;
-}
+};
 
-const checkMessageCreation = async (payload: messagePayload) => {
+const checkMessageCreation = async (payload: MessagePayload) => {
   return prisma.$transaction(async () => {
     try {
       const messageChat = await prisma.chat.findUniqueOrThrow({
         where: {
           uuid: payload.chatUUID,
+        },
+        include: {
+          users: true,
         },
       });
 
@@ -96,13 +118,38 @@ const checkMessageCreation = async (payload: messagePayload) => {
         where: {
           uuid: payload.senderUUID,
         },
+        include: {
+          chats: true,
+        },
       });
 
       const messageReceiver = await prisma.user.findUniqueOrThrow({
         where: {
           uuid: payload.receiverUUID,
         },
+        include: {
+          chats: true,
+        },
       });
+
+      //check if sender and receiver are related to the chat
+
+      const messageChatUserChats = await prisma.userChat.findMany({
+        where: {
+          chat_id: messageChat.id,
+        },
+      });
+
+      const messageChatUsers = messageChatUserChats.map(
+        (userChat) => userChat.user_id
+      );
+
+      if (
+        !messageChatUsers.includes(messageSender.id) ||
+        !messageChatUsers.includes(messageReceiver.id)
+      ) {
+        throw createHttpError(400, "users are not related to the chat");
+      }
 
       const newMessage: Omit<Message, "id" | "uuid" | "created_at"> = {
         content: payload.content,
@@ -114,12 +161,33 @@ const checkMessageCreation = async (payload: messagePayload) => {
       await prisma.message.create({
         data: newMessage,
       });
+    } catch (err: any) {
+      if (err.status === 400) {
+        throw err;
+      }
 
-      return true;
-    } catch (err) {
-      return false;
+      throw createHttpError(
+        424,
+        "an error occured during the message creation"
+      );
     }
   });
+};
+
+const validateMessagePayload = (obj: any) => {
+  //console.log(obj);
+  if (
+    !checkRequestData(
+      (obj as MessagePayload).chatUUID,
+      (obj as MessagePayload).senderUUID,
+      (obj as MessagePayload).receiverUUID
+    ) ||
+    typeof (obj as MessagePayload).content !== "string"
+  ) {
+    return false;
+  }
+
+  return true;
 };
 
 const createMessage = async (
@@ -128,24 +196,21 @@ const createMessage = async (
   next: NextFunction
 ) => {
   //get chat uuid, sender uuid and receiver uuid from body
-  const { chatUUID, senderUUID, receiverUUID, content } = req.body;
 
-  if (!checkRequestData(chatUUID, senderUUID, receiverUUID, content)) {
+  if (!validateMessagePayload(req.body)) {
     throw createHttpError(400, "bad request");
   }
 
-  const payload = {
+  const { chatUUID, senderUUID, receiverUUID, content } = req.body;
+
+  const messagePayload = {
     chatUUID,
     senderUUID,
     receiverUUID,
     content,
   };
 
-  const wasMessageCreated = await checkMessageCreation(payload);
-
-  if (!wasMessageCreated) {
-    throw createHttpError(424, "unprocessable content");
-  }
+  await checkMessageCreation(messagePayload);
 
   res.status(200).json({
     success: true,
@@ -163,18 +228,20 @@ type EditableMessage = {
 };
 
 //type check for req.body
-
-const isEditableMessage = (obj: any): obj is EditableMessage => {
+const validateEditableMessage = (obj: any): obj is EditableMessage => {
   return typeof (obj as EditableMessage).content === "string";
 };
 
 const editMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { messageUUID: messageToEditUUID } = req.params;
-
-    if (!checkRequestData(messageToEditUUID) || !isEditableMessage(req.body)) {
+    if (
+      !checkRequestData(req.params?.messageUUID) ||
+      !validateEditableMessage(req.body)
+    ) {
       throw createHttpError(400, "bad request");
     }
+
+    const { messageUUID: messageToEditUUID } = req.params;
 
     const editableMessage: EditableMessage = req.body;
 
@@ -189,9 +256,60 @@ const editMessage = async (req: Request, res: Response, next: NextFunction) => {
       success: true,
       message: "message edited successfully",
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
     next(err);
   }
+};
+
+type SenderOrReceiver = {
+  isSender: boolean;
+};
+
+const checkIfUserIsSenderOrReceiver = async (
+  messageUUID: string,
+  userInfos: SenderOrReceiver
+) => {
+  return prisma.$transaction(async () => {
+    try {
+      const fieldToUpdate = userInfos.isSender ? "sender_id" : "receiver_id";
+      const deletedMessage = await prisma.message.findUniqueOrThrow({
+        where: {
+          uuid: messageUUID,
+        },
+      });
+
+      if (deletedMessage[fieldToUpdate] === null) {
+        throw createHttpError(400, "message already deleted for this user");
+      }
+
+      await prisma.message.update({
+        where: {
+          uuid: messageUUID,
+        },
+        data: {
+          [fieldToUpdate]: null,
+        },
+      });
+    } catch (err: any) {
+      if (err.status === 400) {
+        throw err;
+      }
+      throw createHttpError(
+        424,
+        "an error occured during the message deletion"
+      );
+    }
+  });
+};
+
+const validateSenderOrReceiver = (obj: any): obj is SenderOrReceiver => {
+  return typeof (obj as SenderOrReceiver).isSender === "boolean";
 };
 
 const deleteMessageForUser = async (
@@ -200,24 +318,19 @@ const deleteMessageForUser = async (
   next: NextFunction
 ) => {
   try {
-    //to delete a message for user  we just remove sender_id
-    const { messageUUID: messageToDisconnectUUID } = req.params;
-    if (!checkRequestData(messageToDisconnectUUID)) {
+    if (
+      !checkRequestData(req.params?.messageUUID, req.params?.userUUID) ||
+      !validateSenderOrReceiver(req.body)
+    ) {
       throw createHttpError(400, "bad request");
     }
+    const { messageUUID: messageToDisconnectUUID } = req.params;
+    //I need to check if the user sending the request is the sender or the receiver
+    //of the message, and set to null accordingly
+    //this informations is passed in the body of the request (type SenderOrReceiver)
+    const userInfos = req.body;
 
-    const messageToDisconnect = await prisma.message.update({
-      where: {
-        uuid: messageToDisconnectUUID,
-      },
-      data: {
-        sender_id: null,
-      },
-    });
-
-    if (!messageToDisconnect) {
-      throw createHttpError(424, "unprocessable content");
-    }
+    await checkIfUserIsSenderOrReceiver(messageToDisconnectUUID, userInfos);
 
     res.status(200).json({
       success: true,
@@ -234,27 +347,29 @@ const deleteMessageForAll = async (
   next: NextFunction
 ) => {
   try {
-    const { messageUUID: messageToDeleteUUID } = req.params;
-
-    if (!checkRequestData(messageToDeleteUUID)) {
+    if (!checkRequestData(req.params?.messageUUID)) {
       throw createHttpError(400, "bad request");
     }
 
-    const messageToDelete = await prisma.message.delete({
+    const { messageUUID: messageToDeleteUUID } = req.params;
+
+    await prisma.message.delete({
       where: {
         uuid: messageToDeleteUUID,
       },
     });
 
-    if (!messageToDelete) {
-      throw createHttpError(404, "not found");
-    }
-
     res.status(200).json({
       success: true,
       message: "message deleted for all",
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
     next(err);
   }
 };

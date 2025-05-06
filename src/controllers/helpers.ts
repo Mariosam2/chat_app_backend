@@ -1,6 +1,8 @@
+import validator from "validator";
+
 export const checkRequestData = (...data: any[]) => {
   for (let i = 0; i < data.length; i++) {
-    if (!data[i] || typeof data[i] !== "string") {
+    if (!data[i] || !validator.isUUID(data[i], 4)) {
       return false;
     }
 

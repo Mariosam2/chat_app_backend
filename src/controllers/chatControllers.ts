@@ -2,8 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { checkRequestData, checkAndFindMatches } from "./helpers";
 import createHttpError, { HttpError } from "http-errors";
 import { PrismaClient } from "../../client";
-import validator from "validator";
-//TODO: use validator to validate uuids and use P2001 P2025????????? for 404
+
 const prisma = new PrismaClient();
 
 const getUserChats = async (
@@ -12,7 +11,7 @@ const getUserChats = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.params?.userUUID || !validator.isUUID(req.params?.userUUID, 4)) {
+    if (!checkRequestData(req.params?.userUUID)) {
       throw createHttpError(400, "bad request");
     }
 
@@ -58,12 +57,7 @@ const getUserChats = async (
 
 const createChat = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (
-      !req.body?.senderUUID ||
-      !validator.isUUID(req.body?.senderUUID, 4) ||
-      !req.body?.receiverUUID ||
-      !validator.isUUID(req.body?.receiverUUID)
-    ) {
+    if (!checkRequestData(req.body?.senderUUID, req.body?.receiverUUID)) {
       throw createHttpError(400, "bad request");
     }
 
@@ -104,7 +98,7 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
       throw createHttpError(400, "users have a chat already");
     }
 
-    //if users dont have a chat, create a new one
+    //if users dont have a chat, create a new one with users relation
     await prisma.chat.create({
       data: {
         users: {
@@ -132,13 +126,8 @@ const deleteChatForUser = async (
   next: NextFunction
 ) => {
   try {
-    if (
-      !req.params?.chatUUID ||
-      !validator.isUUID(req.params?.chatUUID, 4) ||
-      !req.params?.userUUID ||
-      !validator.isUUID(req.params?.userUUID, 4)
-    ) {
-      console.log(req.params);
+    if (!checkRequestData(req.params?.chatUUID, req.params?.userUUID)) {
+      //console.log(req.params);
       throw createHttpError(400, "bad request");
     }
 
@@ -202,7 +191,7 @@ const deleteChatForAll = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.params?.chatUUID || !validator.isUUID(req.params?.chatUUID, 4)) {
+    if (!checkRequestData(req.params?.chatUUID)) {
       throw createHttpError(400, "bad request");
     }
 
