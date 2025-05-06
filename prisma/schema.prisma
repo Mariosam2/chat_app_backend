@@ -35,12 +35,12 @@ model Chat {
 }
 
 model UserChat {
-  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [user_id], references: [id])
   user_id BigInt
-  Chat    Chat   @relation(fields: [chat_id], references: [id], onDelete: Cascade)
+  Chat    Chat   @relation(fields: [chat_id], references: [id])
   chat_id BigInt
 
-  @@id([user_id, chat_id])
+  @@unique([user_id, chat_id])
   @@map("chat_user")
 }
 

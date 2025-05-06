@@ -219,6 +219,14 @@ const deleteChatForAll = async (
         id: chatToDelete.id,
       },
     });
+
+    //drop the relation manually since prisma onCascade not working
+    await prisma.userChat.deleteMany({
+      where: {
+        chat_id: chatToDelete.id,
+      },
+    });
+
     res.status(200).json({
       success: true,
       message: "chat deleted for all successfully",
