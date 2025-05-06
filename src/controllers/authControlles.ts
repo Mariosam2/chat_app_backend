@@ -13,34 +13,23 @@ type RegisterPayload = {
   confirm_password: string;
 };
 
-type LoginPayload = {
-  username: string | null;
-  email: string | null;
-  password: string;
-};
-
-const isLoginPayload = (obj: any): obj is LoginPayload => {
-  //if one between username and email is a string is fine
-  return (
-    (typeof (obj as LoginPayload).username === "string" ||
-      typeof (obj as LoginPayload).email === "string") &&
-    typeof (obj as LoginPayload).password === "string"
-  );
-};
-
 const isRegisterPayload = (obj: any): obj is RegisterPayload => {
   return (
     typeof (obj as RegisterPayload).username === "string" &&
+    (obj as RegisterPayload).username.length !== 0 &&
     typeof (obj as RegisterPayload).email === "string" &&
+    (obj as RegisterPayload).email.length !== 0 &&
     typeof (obj as RegisterPayload).password === "string" &&
-    typeof (obj as RegisterPayload).confirm_password === "string"
+    (obj as RegisterPayload).password.length !== 0 &&
+    typeof (obj as RegisterPayload).confirm_password === "string" &&
+    (obj as RegisterPayload).confirm_password.length !== 0
   );
 };
 //check only if the email is an email,
 //for username and email unique constraint I'll catch P2002 prisma error
-const validateRegister = (
+const validateRegister = async (
   obj: RegisterPayload
-): Omit<User, "id" | "uuid" | "profile_picture" | "created_at"> => {
+): Promise<Omit<User, "id" | "uuid" | "profile_picture" | "created_at">> => {
   if (!validator.isEmail(obj.email)) {
     throw createHttpError(400, "enter a valid email (ex: example@mail.com)");
   }
@@ -50,8 +39,11 @@ const validateRegister = (
 
   //TODO: validate strongPassword using validator
 
-  const { confirm_password, ...rest } = obj;
-  const newUser = { ...rest, deleted_at: null };
+  const { confirm_password, password, ...rest } = obj;
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+
+  const newUser = { ...rest, password: hashedPassword, deleted_at: null };
 
   return newUser;
 };
@@ -62,43 +54,65 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
       throw createHttpError(400, "bad request");
     }
     const registerPayload: RegisterPayload = req.body;
-    const newUser = validateRegister(registerPayload);
+    const newUser = await validateRegister(registerPayload);
 
     await prisma.user.create({
       data: newUser,
     });
 
+    //TO POSSIBLY DO: give a token when register
     res.status(200).json({
       success: true,
       message: "user registered successfully",
     });
-  } catch (err) {
-    //TODO: catch P2002 error for unique contraints
+  } catch (err: any) {
+    if (err.code === "P2002") {
+      throw createHttpError(409, "user already exists");
+    }
     next(err);
   }
 };
 
-const findUserAtLogin = async (
-  email: string | null,
-  username: string | null
-) => {
+type LoginPayload =
+  | { username: string; email: null; password: string }
+  | { email: string; username: null; password: string };
+
+const isLoginPayload = (obj: any): obj is LoginPayload => {
+  //console.log(obj);
+  //if one between username and email is a string is fine
+  if (typeof obj !== "object" || obj === null) {
+    return false;
+  }
+  if (typeof (obj as LoginPayload).password !== "string") {
+    return false;
+  }
+  const hasEmail =
+    typeof (obj as LoginPayload).email === "string" &&
+    (obj as LoginPayload).email?.length !== 0;
+  const hasUsername =
+    typeof (obj as LoginPayload).username === "string" &&
+    (obj as LoginPayload).username?.length !== 0;
+  //console.log(hasEmail, hasUsername);
+
+  return hasEmail !== hasUsername;
+};
+
+const findUserAtLogin = async (isEmail: boolean, emailOrUsername: string) => {
   //this helper will make a transaction after a check on email or username
-  return prisma.$transaction(async () => {
-    if (email !== null) {
-      //this throw a P2001 (so I can catch it and throw a 404) or a user
-      return await prisma.user.findUniqueOrThrow({
+  try {
+    return await prisma.$transaction(async () => {
+      const fieldName = isEmail ? "email" : "username";
+      //console.log(fieldName, emailOrUsername);
+      return await prisma.user.findFirstOrThrow({
         where: {
-          email: email,
+          [fieldName]: emailOrUsername,
         },
       });
-    } else if (username !== null) {
-      return await prisma.user.findUniqueOrThrow({
-        where: {
-          username: username,
-        },
-      });
-    }
-  });
+    });
+  } catch (err) {
+    //console.log(err);
+    throw createHttpError(401, "wrong credentials");
+  }
 };
 
 const getEnvOrThrow = (name: string) => {
@@ -110,39 +124,44 @@ const getEnvOrThrow = (name: string) => {
 
 const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    //console.log(req.body);
     if (!isLoginPayload(req.body)) {
       throw createHttpError(400, "bad request");
     }
 
-    const loginPayload: LoginPayload = req.body;
+    const {
+      email: userEmail,
+      username: userUsername,
+      password: userPassword,
+    } = req.body;
+
     //validate the email
-    if (loginPayload.email !== null && !validator.isEmail(loginPayload.email)) {
+    if (userEmail !== null && !validator.isEmail(userEmail)) {
       throw createHttpError(400, "enter a valid email (ex: example@mail.com)");
     }
 
-    const authUser = await findUserAtLogin(
-      loginPayload.email,
-      loginPayload.username
-    );
+    const isEmail = userEmail !== null ? true : false;
+    //console.log(isEmail);
+    //in this case i know that if email is null then i get a username since I checked before
+    //for both nullable values
+    const emailOrUsername = userEmail !== null ? userEmail : userUsername!;
+    //console.log(emailOrUsername);
 
-    if (!authUser) {
-      //this means the user gave me a wrong username or email
-      throw createHttpError(400, "wrong credentials");
-    }
+    const authUser = await findUserAtLogin(isEmail, emailOrUsername);
 
     //check if password is correct
     const isPasswordCorrect = await bcrypt.compare(
-      loginPayload.password,
-      authUser.password
+      userPassword,
+      authUser!.password
     );
 
     if (!isPasswordCorrect) {
-      throw createHttpError(400, "wrong credentials");
+      throw createHttpError(401, "wrong credentials");
     }
 
     //generate a token and give it to the client
     const token = jwt.sign(
-      { user_uuid: authUser.uuid },
+      { user_uuid: authUser!.uuid },
       getEnvOrThrow("JWT_SECRET_KEY"),
       { expiresIn: "30m" }
     );

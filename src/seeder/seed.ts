@@ -24,7 +24,7 @@ async function insertUsers() {
     const user = {
       username: faker.internet.username(),
       email: faker.internet.email(),
-      password: await generatePassword("strongpassword", 10),
+      password: await generatePassword("strongpassword", 12),
       deleted_at: null,
     };
     randomUsers.push(user);

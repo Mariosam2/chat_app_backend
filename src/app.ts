@@ -3,11 +3,13 @@ import { errorHandler } from "./middlewares/errorHandler";
 import chatRoutes from "./routes/chatRoutes";
 import messageRoutes from "./routes/messageRoutes";
 import userRoutes from "./routes/userRoutes";
+import authRoutes from "./routes/authRoutes";
 
 const app = express();
 
 app.use(express.static("public"));
 app.use(express.json());
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/messages", messageRoutes);
