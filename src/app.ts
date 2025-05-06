@@ -5,6 +5,7 @@ import messageRoutes from "./routes/messageRoutes";
 import userRoutes from "./routes/userRoutes";
 
 const app = express();
+
 app.use(express.static("public"));
 app.use(express.json());
 app.use("/api/users", userRoutes);

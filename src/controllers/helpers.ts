@@ -1,8 +1,8 @@
 import validator from "validator";
 
-export const checkRequestData = (...data: any[]) => {
-  for (let i = 0; i < data.length; i++) {
-    if (!data[i] || !validator.isUUID(data[i], 4)) {
+export const validateUUIDS = (...uuids: any[]) => {
+  for (let i = 0; i < uuids.length; i++) {
+    if (!uuids[i] || !validator.isUUID(uuids[i], 4)) {
       return false;
     }
 

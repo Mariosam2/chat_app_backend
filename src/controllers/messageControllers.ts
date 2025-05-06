@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { checkRequestData } from "./helpers";
+import { validateUUIDS } from "./helpers";
 import { Message, PrismaClient } from "../../client";
 import createHttpError from "http-errors";
-import { UUIDVersion } from "validator";
 import { UUID } from "crypto";
 
 const prisma = new PrismaClient();
@@ -13,7 +12,7 @@ const getUserMessages = async (
   next: NextFunction
 ) => {
   try {
-    if (!checkRequestData(req.params?.userUUID)) {
+    if (!validateUUIDS(req.params?.userUUID)) {
       throw createHttpError(400, "bad request");
     }
 
@@ -56,7 +55,7 @@ const getChatMessages = async (
   next: NextFunction
 ) => {
   try {
-    if (!checkRequestData(req.params?.chatUUID)) {
+    if (!validateUUIDS(req.params?.chatUUID)) {
       throw createHttpError(400, "bad request");
     }
 
@@ -177,7 +176,7 @@ const checkMessageCreation = async (payload: MessagePayload) => {
 const validateMessagePayload = (obj: any) => {
   //console.log(obj);
   if (
-    !checkRequestData(
+    !validateUUIDS(
       (obj as MessagePayload).chatUUID,
       (obj as MessagePayload).senderUUID,
       (obj as MessagePayload).receiverUUID
@@ -235,7 +234,7 @@ const validateEditableMessage = (obj: any): obj is EditableMessage => {
 const editMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (
-      !checkRequestData(req.params?.messageUUID) ||
+      !validateUUIDS(req.params?.messageUUID) ||
       !validateEditableMessage(req.body)
     ) {
       throw createHttpError(400, "bad request");
@@ -319,7 +318,7 @@ const deleteMessageForUser = async (
 ) => {
   try {
     if (
-      !checkRequestData(req.params?.messageUUID, req.params?.userUUID) ||
+      !validateUUIDS(req.params?.messageUUID, req.params?.userUUID) ||
       !validateSenderOrReceiver(req.body)
     ) {
       throw createHttpError(400, "bad request");
@@ -347,7 +346,7 @@ const deleteMessageForAll = async (
   next: NextFunction
 ) => {
   try {
-    if (!checkRequestData(req.params?.messageUUID)) {
+    if (!validateUUIDS(req.params?.messageUUID)) {
       throw createHttpError(400, "bad request");
     }
 

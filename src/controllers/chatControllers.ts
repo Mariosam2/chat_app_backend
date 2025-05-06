@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { checkRequestData, checkAndFindMatches } from "./helpers";
-import createHttpError, { HttpError } from "http-errors";
+import { validateUUIDS, checkAndFindMatches } from "./helpers";
+import createHttpError from "http-errors";
 import { PrismaClient } from "../../client";
 
 const prisma = new PrismaClient();
@@ -11,7 +11,7 @@ const getUserChats = async (
   next: NextFunction
 ) => {
   try {
-    if (!checkRequestData(req.params?.userUUID)) {
+    if (!validateUUIDS(req.params?.userUUID)) {
       throw createHttpError(400, "bad request");
     }
 
@@ -57,7 +57,7 @@ const getUserChats = async (
 
 const createChat = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!checkRequestData(req.body?.senderUUID, req.body?.receiverUUID)) {
+    if (!validateUUIDS(req.body?.senderUUID, req.body?.receiverUUID)) {
       throw createHttpError(400, "bad request");
     }
 
@@ -126,7 +126,7 @@ const deleteChatForUser = async (
   next: NextFunction
 ) => {
   try {
-    if (!checkRequestData(req.params?.chatUUID, req.params?.userUUID)) {
+    if (!validateUUIDS(req.params?.chatUUID, req.params?.userUUID)) {
       //console.log(req.params);
       throw createHttpError(400, "bad request");
     }
@@ -191,7 +191,7 @@ const deleteChatForAll = async (
   next: NextFunction
 ) => {
   try {
-    if (!checkRequestData(req.params?.chatUUID)) {
+    if (!validateUUIDS(req.params?.chatUUID)) {
       throw createHttpError(400, "bad request");
     }
 

@@ -1,19 +1,19 @@
 import { Request, Response, NextFunction } from "express";
-import { checkRequestData } from "./helpers";
+import { validateUUIDS } from "./helpers";
 import { PrismaClient } from "../../client";
 import createHttpError from "http-errors";
 
 const prisma = new PrismaClient();
-//TODO: use validator to validate uuids and use P2001 for 404
+
 const getUserData = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { userUUID } = req.params;
-
-    if (!checkRequestData(userUUID)) {
+    if (!validateUUIDS(req.params?.userUUID)) {
       throw createHttpError(400, "bad request");
     }
 
-    const userData = await prisma.user.findUnique({
+    const { userUUID } = req.params;
+
+    const userData = await prisma.user.findUniqueOrThrow({
       where: {
         uuid: userUUID,
       },
@@ -23,15 +23,17 @@ const getUserData = async (req: Request, res: Response, next: NextFunction) => {
       },
     });
 
-    if (userData === null) {
-      throw createHttpError(404, "not found");
-    }
-
     res.status(200).json({
       success: true,
       user: userData,
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
     next(err);
   }
 };
@@ -42,13 +44,13 @@ const getChatUsers = async (
   next: NextFunction
 ) => {
   try {
-    const { chatUUID } = req.params;
-
-    if (!checkRequestData(chatUUID)) {
+    if (!validateUUIDS(req.params?.chatUUID)) {
       throw createHttpError(400, "bad request");
     }
 
-    const chatUsers = await prisma.chat.findUnique({
+    const { chatUUID } = req.params;
+
+    const chatUsers = await prisma.chat.findUniqueOrThrow({
       where: {
         uuid: chatUUID,
       },
@@ -57,9 +59,6 @@ const getChatUsers = async (
       },
     });
 
-    if (chatUsers === null) {
-      throw createHttpError(404, "not found");
-    }
     const chatUsersIds = chatUsers.users.map((user) => user.user_id);
 
     const chatUsersData = await prisma.user.findMany({
@@ -75,7 +74,13 @@ const getChatUsers = async (
       success: true,
       users: chatUsersData.map((user) => user.uuid),
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
     next(err);
   }
 };
@@ -86,13 +91,13 @@ const getMessageUsers = async (
   next: NextFunction
 ) => {
   try {
-    const { messageUUID } = req.params;
-
-    if (!checkRequestData(messageUUID)) {
+    if (!validateUUIDS(req.params?.messageUUID)) {
       throw createHttpError(400, "bad request");
     }
 
-    const messageUsers = await prisma.message.findUnique({
+    const { messageUUID } = req.params;
+
+    const messageUsers = await prisma.message.findUniqueOrThrow({
       where: {
         uuid: messageUUID,
       },
@@ -102,15 +107,17 @@ const getMessageUsers = async (
       },
     });
 
-    if (messageUsers === null) {
-      throw createHttpError(404, "not found");
-    }
-
     res.status(200).json({
       success: true,
       users: messageUsers,
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
     next(err);
   }
 };
@@ -130,10 +137,12 @@ const isEditableUser = (obj: any): obj is EditableUser => {
 const editUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     //TODO: manage the edit of the profile picture with file system (multer)
-    const { userUUID } = req.params;
-    if (!checkRequestData(userUUID) || !isEditableUser(req.body)) {
+
+    if (!validateUUIDS(req.params?.userUUID) || !isEditableUser(req.body)) {
       throw createHttpError(400, "bad request");
     }
+
+    const { userUUID } = req.params;
 
     const editableUser: EditableUser = req.body;
 
@@ -148,7 +157,13 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
       success: true,
       message: "user edited successfully",
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
     next(err);
   }
 };
@@ -156,11 +171,11 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
 const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
   //TODO: delete chat relations and messages relations
   try {
-    const { userUUID } = req.params;
-
-    if (!checkRequestData(userUUID)) {
+    if (!validateUUIDS(req.params?.userUUID)) {
       throw createHttpError(400, "bad request");
     }
+
+    const { userUUID } = req.params;
 
     await prisma.user.update({
       where: {
@@ -168,7 +183,13 @@ const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
       },
       data: { deleted_at: new Date() },
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
     next(err);
   }
 };
