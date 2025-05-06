@@ -184,7 +184,7 @@ const deleteChatForUser = async (
     });
   } catch (err: any) {
     if (err.code === "P2025") {
-      if (err.meta.modelName) {
+      if (err.meta.modelName === "UserChat") {
         throw createHttpError(404, "this user doesn't have this chat");
       }
       throw createHttpError(
