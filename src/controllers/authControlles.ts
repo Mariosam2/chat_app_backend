@@ -4,6 +4,7 @@ import * as validator from "validator";
 import { PrismaClient, User } from "../../client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { getEnvOrThrow } from "./helpers";
 const prisma = new PrismaClient();
 
 type RegisterPayload = {
@@ -115,13 +116,6 @@ const findUserAtLogin = async (isEmail: boolean, emailOrUsername: string) => {
   }
 };
 
-const getEnvOrThrow = (name: string) => {
-  if (!process.env[name]) {
-    throw new Error("missing variable in .env file");
-  }
-  return process.env[name];
-};
-
 const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     //console.log(req.body);
@@ -163,7 +157,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     const token = jwt.sign(
       { user_uuid: authUser!.uuid },
       getEnvOrThrow("JWT_SECRET_KEY"),
-      { expiresIn: "30m" }
+      { expiresIn: "1h" }
     );
 
     res.status(200).json({

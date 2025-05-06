@@ -1,5 +1,12 @@
 import validator from "validator";
 
+export const getEnvOrThrow = (name: string) => {
+  if (!process.env[name]) {
+    throw new Error("missing variable in .env file");
+  }
+  return process.env[name];
+};
+
 export const validateUUIDS = (...uuids: any[]) => {
   for (let i = 0; i < uuids.length; i++) {
     if (!uuids[i] || !validator.isUUID(uuids[i], 4)) {
