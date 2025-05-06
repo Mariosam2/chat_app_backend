@@ -8,7 +8,9 @@ export const auth = (req: Request, res: Response, next: NextFunction) => {
     if (!req.header("JWT_BEARER")) {
       throw createHttpError(401, "Unauthorized");
     }
+
     const accessToken = req.header("JWT_BEARER")!;
+    //isTokenValid doesnt store a boolean, to fix: catch the error
     const isTokenValid = jwt.verify(
       accessToken,
       getEnvOrThrow("JWT_SECRET_KEY")

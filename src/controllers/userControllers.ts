@@ -5,6 +5,10 @@ import createHttpError from "http-errors";
 
 const prisma = new PrismaClient();
 
+const getLoggedInUser = async () => {
+  //get the user uuid from
+};
+
 const getUserData = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!validateUUIDS(req.params?.userUUID)) {
@@ -194,4 +198,11 @@ const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { getUserData, getChatUsers, getMessageUsers, editUser, deleteUser };
+export {
+  getLoggedInUser,
+  getUserData,
+  getChatUsers,
+  getMessageUsers,
+  editUser,
+  deleteUser,
+};
