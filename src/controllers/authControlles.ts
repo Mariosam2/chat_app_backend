@@ -161,8 +161,19 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     const token = jwt.sign(
       { user_uuid: authUser!.uuid },
       getEnvOrThrow("JWT_SECRET_KEY"),
-      { expiresIn: "1h" }
+      { expiresIn: 20 }
     );
+
+    const refreshToken = jwt.sign(
+      { user_uuid: authUser!.uuid },
+      getEnvOrThrow("JWT_SECRET_KEY"),
+      { expiresIn: 60 * 10 }
+    );
+
+    //set a cookie in the client browser with a longer expiration (refresh token)
+    res.cookie("REFRESH_TOKEN", refreshToken, {
+      expires: new Date(Date.now() + 300000),
+    });
 
     res.status(200).json({
       success: true,
@@ -173,4 +184,34 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { register, login };
+const refreshToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const refreshToken = req.cookies["REFRESH_TOKEN"]!;
+
+    const decodedUser = jwt.verify(
+      refreshToken,
+      getEnvOrThrow("JWT_SECRET_KEY")
+    );
+
+    if (typeof decodedUser === "object") {
+      //if refresh token is verified, sign a new access token and serve it
+      const refreshedAccessToken = jwt.sign(
+        { user_uuid: decodedUser.user_uuid },
+        getEnvOrThrow("JWT_SECRET_KEY"),
+        { expiresIn: 60 }
+      );
+      res.status(301).json({
+        success: true,
+        token: refreshedAccessToken,
+      });
+    }
+  } catch (err) {
+    throw createHttpError(401, "Unauthorized");
+  }
+};
+
+export { register, login, refreshToken };

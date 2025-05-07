@@ -6,21 +6,23 @@ import { getEnvOrThrow } from "../controllers/helpers";
 
 export const auth = (req: Request, res: Response, next: NextFunction) => {
   try {
-    const accessToken = req.header("JWT_BEARER")!;
-    //isTokenValid doesnt store a boolean, to fix: catch the error
-    const decodedUser = jwt.verify(
-      accessToken,
-      getEnvOrThrow("JWT_SECRET_KEY")
-    );
+    //console.log(req);
 
-    //console.log(decodedUser);
-    if (typeof decodedUser !== "string") {
-      req.user = decodedUser.user_uuid;
+    if (!req.header("JWT_BEARER")) {
+      throw createHttpError(401, "Unauthorized");
     }
 
-    //refresh token system
-    next();
+    const accessToken = req.header("JWT_BEARER")!;
+
+    jwt.verify(accessToken, getEnvOrThrow("JWT_SECRET_KEY"), (err, decoded) => {
+      if (err) {
+        res.redirect("/api/auth/refresh-token");
+      } else if (decoded && typeof decoded === "object") {
+        req.user = decoded.user_uuid;
+        next();
+      }
+    });
   } catch (err) {
-    throw createHttpError(401, "Unauthorized");
+    next(err);
   }
 };
