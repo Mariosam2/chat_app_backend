@@ -1,12 +1,45 @@
 import { Request, Response, NextFunction } from "express";
+
 import { validateUUIDS } from "./helpers";
 import { PrismaClient } from "../../client";
 import createHttpError from "http-errors";
 
 const prisma = new PrismaClient();
 
-const getLoggedInUser = async () => {
-  //get the user uuid from
+const getLoggedInUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!validateUUIDS(req.user)) {
+      throw createHttpError(400, "bad request");
+    }
+    const authUserUUID = req.user;
+    //get the user uuid from
+    const authUser = await prisma.user.findUniqueOrThrow({
+      where: {
+        uuid: authUserUUID,
+      },
+      select: {
+        username: true,
+        profile_picture: true,
+        email: true,
+      },
+    });
+    res.status(200).json({
+      success: true,
+      authUser: authUser,
+    });
+  } catch (err: any) {
+    if (err.code === "P2025") {
+      throw createHttpError(
+        404,
+        err.meta.modelName.toLowerCase() + " " + "not found"
+      );
+    }
+    next(err);
+  }
 };
 
 const getUserData = async (req: Request, res: Response, next: NextFunction) => {

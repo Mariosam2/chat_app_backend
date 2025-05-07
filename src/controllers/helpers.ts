@@ -1,4 +1,11 @@
 import validator from "validator";
+import "express";
+
+declare module "express" {
+  interface Request {
+    user?: any;
+  }
+}
 
 export const getEnvOrThrow = (name: string) => {
   if (!process.env[name]) {

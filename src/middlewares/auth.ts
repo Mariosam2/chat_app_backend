@@ -1,26 +1,26 @@
-import { Response, Request, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
+
 import createHttpError from "http-errors";
 import jwt from "jsonwebtoken";
 import { getEnvOrThrow } from "../controllers/helpers";
 
 export const auth = (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.header("JWT_BEARER")) {
-      throw createHttpError(401, "Unauthorized");
-    }
-
     const accessToken = req.header("JWT_BEARER")!;
     //isTokenValid doesnt store a boolean, to fix: catch the error
-    const isTokenValid = jwt.verify(
+    const decodedUser = jwt.verify(
       accessToken,
       getEnvOrThrow("JWT_SECRET_KEY")
     );
-    if (!isTokenValid) {
-      throw createHttpError(401, "Unauthorized");
+
+    //console.log(decodedUser);
+    if (typeof decodedUser !== "string") {
+      req.user = decodedUser.user_uuid;
     }
+
     //refresh token system
-    next(req);
+    next();
   } catch (err) {
-    throw err;
+    throw createHttpError(401, "Unauthorized");
   }
 };

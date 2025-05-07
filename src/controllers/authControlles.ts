@@ -110,8 +110,12 @@ const findUserAtLogin = async (isEmail: boolean, emailOrUsername: string) => {
         },
       });
     });
-  } catch (err) {
+  } catch (err: any) {
     //console.log(err);
+    if (err.errorCode.startsWith("P10")) {
+      throw createHttpError(500, "Internal Server Error");
+    }
+
     throw createHttpError(401, "wrong credentials");
   }
 };

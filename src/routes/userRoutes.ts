@@ -7,10 +7,12 @@ import {
   getMessageUsers,
   editUser,
   deleteUser,
+  getLoggedInUser,
 } from "../controllers/userControllers";
 
 const router = Router();
 
+router.get("/auth/logged-in", getLoggedInUser);
 router.get("/user/:userUUID", getUserData);
 
 router.get("/chat/:chatUUID", getChatUsers);
