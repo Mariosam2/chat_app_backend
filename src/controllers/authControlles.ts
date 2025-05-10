@@ -4,7 +4,7 @@ import * as validator from "validator";
 import { PrismaClient, User } from "../../client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { getEnvOrThrow } from "./helpers";
+import { getDateFromNow, getEnvOrThrow } from "./helpers";
 const prisma = new PrismaClient();
 
 type RegisterPayload = {
@@ -111,7 +111,7 @@ const findUserAtLogin = async (isEmail: boolean, emailOrUsername: string) => {
       });
     });
   } catch (err: any) {
-    //console.log(err);
+    console.log(err);
     if (err.errorCode.startsWith("P10")) {
       throw createHttpError(500, "Internal Server Error");
     }
@@ -162,18 +162,18 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     const token = jwt.sign(
       { user_uuid: authUser!.uuid },
       getEnvOrThrow("JWT_SECRET_KEY"),
-      { expiresIn: "1h" }
+      { expiresIn: "15min" }
     );
 
     const refreshToken = jwt.sign(
       { user_uuid: authUser!.uuid },
       getEnvOrThrow("JWT_SECRET_KEY"),
-      { expiresIn: 60 * 10 }
+      { expiresIn: "1h" }
     );
 
     //set a cookie in the client browser with a longer expiration (refresh token)
     res.cookie("REFRESH_TOKEN", refreshToken, {
-      expires: new Date(Date.now() + 300000),
+      expires: getDateFromNow(5),
       httpOnly: true,
       sameSite: "none",
       secure: true,
@@ -184,6 +184,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
       token,
     });
   } catch (err) {
+    console.log(err);
     next(err);
   }
 };
@@ -206,11 +207,17 @@ const refreshToken = async (
       const refreshedAccessToken = jwt.sign(
         { user_uuid: decodedUser.user_uuid },
         getEnvOrThrow("JWT_SECRET_KEY"),
+        { expiresIn: "15min" }
+      );
+
+      const newRefreshToken = jwt.sign(
+        { user_uuid: decodedUser.uuid },
+        getEnvOrThrow("JWT_SECRET_KEY"),
         { expiresIn: "1h" }
       );
 
-      res.cookie("REFRESH_TOKEN", refreshToken, {
-        expires: new Date(Date.now() + 300000),
+      res.cookie("REFRESH_TOKEN", newRefreshToken, {
+        expires: getDateFromNow(5),
         httpOnly: true,
         sameSite: "none",
         secure: true,

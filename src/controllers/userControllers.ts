@@ -22,6 +22,7 @@ const getLoggedInUser = async (
         uuid: authUserUUID,
       },
       select: {
+        uuid: true,
         username: true,
         profile_picture: true,
         email: true,

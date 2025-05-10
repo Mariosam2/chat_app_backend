@@ -38,3 +38,10 @@ export const checkAndFindMatches = (
 
   return [false, null];
 };
+
+export const getDateFromNow = (days: number) => {
+  const now = new Date(Date.now());
+  const addDays = now.getDate() + days;
+  now.setDate(addDays);
+  return now;
+};

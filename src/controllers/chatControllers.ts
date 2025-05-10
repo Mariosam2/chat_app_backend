@@ -57,10 +57,14 @@ const getUserChats = async (
 
     const cleanUserChat = userChats.map((userChat) => {
       const { users, messages, ...rest } = userChat;
-      const [lasMessage] = messages;
+      const [lastMessage] = messages;
       const [receiver] = users.map((el) => el.user);
 
-      return { ...rest, lasMessage, receiver };
+      return {
+        ...rest,
+        lastMessage,
+        receiver,
+      };
     });
 
     res.status(200).json({

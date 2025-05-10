@@ -9,7 +9,7 @@ import {
 } from "../controllers/messageControllers";
 const router = Router();
 
-router.get("/user/:userUUID/:chatUUID", getChatUserMessages);
+router.get("/:userUUID/:chatUUID", getChatUserMessages);
 router.get("/chat/:chatUUID", getChatMessages);
 //save the message in a chat sent via body of the request
 router.post("/", createMessage);
