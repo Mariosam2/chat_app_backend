@@ -12,23 +12,43 @@ const getChatUserMessages = async (
   next: NextFunction
 ) => {
   try {
-    if (!validateUUIDS(req.params?.userUUID)) {
+    if (!validateUUIDS(req.params?.userUUID, req.params?.chatUUID)) {
       throw createHttpError(400, "bad request");
     }
 
-    const { userUUID } = req.params;
+    const { userUUID, chatUUID } = req.params;
 
-    const userMessages = await prisma.user.findUniqueOrThrow({
+    const userMessages = await prisma.user.findFirstOrThrow({
       where: {
         uuid: userUUID,
       },
 
       select: {
         sentMessages: {
-          select: { uuid: true, content: true, created_at: true },
+          where: {
+            Chat: {
+              uuid: chatUUID,
+            },
+          },
+          select: {
+            uuid: true,
+            content: true,
+            created_at: true,
+            Chat: { select: { uuid: true } },
+          },
         },
         receivedMessages: {
-          select: { uuid: true, content: true, created_at: true },
+          where: {
+            Chat: {
+              uuid: chatUUID,
+            },
+          },
+          select: {
+            uuid: true,
+            content: true,
+            created_at: true,
+            Chat: { select: { uuid: true } },
+          },
         },
       },
     });

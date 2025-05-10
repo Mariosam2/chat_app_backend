@@ -162,7 +162,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     const token = jwt.sign(
       { user_uuid: authUser!.uuid },
       getEnvOrThrow("JWT_SECRET_KEY"),
-      { expiresIn: "15min" }
+      { expiresIn: 15 * 60 }
     );
 
     const refreshToken = jwt.sign(
@@ -207,11 +207,11 @@ const refreshToken = async (
       const refreshedAccessToken = jwt.sign(
         { user_uuid: decodedUser.user_uuid },
         getEnvOrThrow("JWT_SECRET_KEY"),
-        { expiresIn: "15min" }
+        { expiresIn: 15 * 60 }
       );
 
       const newRefreshToken = jwt.sign(
-        { user_uuid: decodedUser.uuid },
+        { user_uuid: decodedUser.user_uuid },
         getEnvOrThrow("JWT_SECRET_KEY"),
         { expiresIn: "1h" }
       );

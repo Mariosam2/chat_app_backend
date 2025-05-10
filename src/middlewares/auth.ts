@@ -17,7 +17,7 @@ export const auth = (req: Request, res: Response, next: NextFunction) => {
       accessToken,
       getEnvOrThrow("JWT_SECRET_KEY")
     );
-
+    //console.log(decodedUser);
     if (typeof decodedUser !== "string") {
       req.user = decodedUser.user_uuid;
       next();

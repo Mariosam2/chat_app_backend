@@ -12,6 +12,7 @@ const getLoggedInUser = async (
   next: NextFunction
 ) => {
   try {
+    //console.log(req.user);
     if (!validateUUIDS(req.user)) {
       throw createHttpError(400, "bad request");
     }
