@@ -135,6 +135,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 
     //validate the email
     if (userEmail !== null && !validator.isEmail(userEmail)) {
+      req.invalidField = "email";
       throw createHttpError(400, "enter a valid email (ex: example@mail.com)");
     }
 

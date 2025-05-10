@@ -6,7 +6,7 @@ import { getEnvOrThrow } from "../controllers/helpers";
 
 export const auth = (req: Request, res: Response, next: NextFunction) => {
   try {
-    //console.log(req.header("authorization"));
+    console.log(req.header("authorization"));
     if (!req.header("Authorization")) {
       throw createHttpError(401, "Unauthorized");
     }

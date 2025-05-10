@@ -4,6 +4,7 @@ import "express";
 declare module "express" {
   interface Request {
     user?: any;
+    invalidField?: string;
   }
 }
 

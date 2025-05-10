@@ -10,8 +10,10 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  const invalidField = req.invalidField;
   res.status(err.status || 500).json({
     success: false,
+    invalidField,
     message: err.message || "Internal Server Error",
   });
 };
