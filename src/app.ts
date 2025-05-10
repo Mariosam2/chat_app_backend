@@ -6,6 +6,7 @@ import userRoutes from "./routes/userRoutes";
 import authRoutes from "./routes/authRoutes";
 import { auth } from "./middlewares/auth";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 
 const app = express();
 

@@ -173,6 +173,10 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     //set a cookie in the client browser with a longer expiration (refresh token)
     res.cookie("REFRESH_TOKEN", refreshToken, {
       expires: new Date(Date.now() + 300000),
+      httpOnly: true,
+      path: "/",
+      sameSite: "none",
+      secure: true,
     });
 
     res.status(200).json({
@@ -204,9 +208,19 @@ const refreshToken = async (
         getEnvOrThrow("JWT_SECRET_KEY"),
         { expiresIn: 60 }
       );
-      res.status(301).json({
+
+      res.cookie("REFRESH_TOKEN", refreshToken, {
+        expires: new Date(Date.now() + 300000),
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
+        //add samesite none and secure true when deploying
+      });
+
+      res.status(200).json({
         success: true,
         token: refreshedAccessToken,
+        message: "token refreshed",
       });
     }
   } catch (err) {
