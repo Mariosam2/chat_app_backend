@@ -38,6 +38,7 @@ const getUserChats = async (
         id: { in: userChatIDS },
       },
       select: {
+        uuid: true,
         users: {
           where: { NOT: { user: { uuid: userUUID } } },
           select: {
@@ -56,7 +57,10 @@ const getUserChats = async (
 
     const cleanUserChat = userChats.map((userChat) => {
       const { users, messages, ...rest } = userChat;
-      return { ...rest, users: users.map((el) => el.user) };
+      const [lasMessage] = messages;
+      const [receiver] = users.map((el) => el.user);
+
+      return { ...rest, lasMessage, receiver };
     });
 
     res.status(200).json({

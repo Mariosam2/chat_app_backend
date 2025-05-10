@@ -161,7 +161,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     const token = jwt.sign(
       { user_uuid: authUser!.uuid },
       getEnvOrThrow("JWT_SECRET_KEY"),
-      { expiresIn: 20 }
+      { expiresIn: "1h" }
     );
 
     const refreshToken = jwt.sign(
@@ -174,7 +174,6 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     res.cookie("REFRESH_TOKEN", refreshToken, {
       expires: new Date(Date.now() + 300000),
       httpOnly: true,
-      path: "/",
       sameSite: "none",
       secure: true,
     });
@@ -206,7 +205,7 @@ const refreshToken = async (
       const refreshedAccessToken = jwt.sign(
         { user_uuid: decodedUser.user_uuid },
         getEnvOrThrow("JWT_SECRET_KEY"),
-        { expiresIn: 60 }
+        { expiresIn: "1h" }
       );
 
       res.cookie("REFRESH_TOKEN", refreshToken, {
