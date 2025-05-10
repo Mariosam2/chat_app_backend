@@ -6,7 +6,7 @@ import { UUID } from "crypto";
 
 const prisma = new PrismaClient();
 
-const getUserMessages = async (
+const getChatUserMessages = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -374,7 +374,7 @@ const deleteMessageForAll = async (
 };
 
 export {
-  getUserMessages,
+  getChatUserMessages,
   getChatMessages,
   createMessage,
   editMessage,

@@ -17,7 +17,7 @@ const getUserChats = async (
 
     const { userUUID } = req.params;
 
-    const userChats = await prisma.user.findUniqueOrThrow({
+    const userUserChats = await prisma.user.findUniqueOrThrow({
       where: {
         uuid: userUUID,
       },
@@ -30,19 +30,38 @@ const getUserChats = async (
       },
     });
 
-    const userChatIDS = userChats.chats.map((chatIdObj) => chatIdObj.chat_id);
-    const userChatsUUIDS = await prisma.chat.findMany({
+    const userChatIDS = userUserChats.chats.map(
+      (chatIdObj) => chatIdObj.chat_id
+    );
+    const userChats = await prisma.chat.findMany({
       where: {
         id: { in: userChatIDS },
       },
       select: {
-        uuid: true,
+        users: {
+          where: { NOT: { user: { uuid: userUUID } } },
+          select: {
+            user: {
+              select: { uuid: true, username: true, profile_picture: true },
+            },
+          },
+        },
+        messages: {
+          orderBy: { id: "desc" },
+          take: 1,
+          select: { uuid: true, content: true, created_at: true },
+        },
       },
+    });
+
+    const cleanUserChat = userChats.map((userChat) => {
+      const { users, messages, ...rest } = userChat;
+      return { ...rest, users: users.map((el) => el.user) };
     });
 
     res.status(200).json({
       success: true,
-      chats: userChatsUUIDS.map((userChat) => userChat.uuid),
+      chats: cleanUserChat,
     });
   } catch (err: any) {
     if (err.code === "P2025") {
