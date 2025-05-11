@@ -7,6 +7,18 @@ import authRoutes from "./routes/authRoutes";
 import { auth } from "./middlewares/auth";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import multer from "multer";
+import { editUser } from "./controllers/userControllers";
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "public/uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  },
+});
+
+export const upload = multer({ storage: storage });
 
 const app = express();
 
@@ -21,6 +33,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use(auth);
 app.use("/api/users", userRoutes);
+app.put("/api/users/:userUUID", upload.single("profile_picture"), editUser);
 app.use("/api/chats", chatRoutes);
 app.use("/api/messages", messageRoutes);
 

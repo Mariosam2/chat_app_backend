@@ -12,7 +12,7 @@ model User {
   id               BigInt     @id @default(autoincrement())
   uuid             String     @unique @default(uuid())
   username         String     @unique
-  profile_picture  String?    @default("/images/default_pfp.png") @db.VarChar(255)
+  profile_picture  String     @default("/images/default_pfp.png") @db.VarChar(255)
   email            String     @unique
   password         String     @db.VarChar(255)
   created_at       DateTime   @default(now())

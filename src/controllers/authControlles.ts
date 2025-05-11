@@ -89,10 +89,10 @@ const isLoginPayload = (obj: any): obj is LoginPayload => {
   }
   const hasEmail =
     typeof (obj as LoginPayload).email === "string" &&
-    (obj as LoginPayload).email?.length !== 0;
+    (obj as LoginPayload).email?.trim() !== "";
   const hasUsername =
     typeof (obj as LoginPayload).username === "string" &&
-    (obj as LoginPayload).username?.length !== 0;
+    (obj as LoginPayload).username?.trim() !== "";
   //console.log(hasEmail, hasUsername);
 
   return hasEmail !== hasUsername;

@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 
 import { validateUUIDS } from "./helpers";
-import { PrismaClient } from "../../client";
+import { PrismaClient, User } from "../../client";
 import createHttpError from "http-errors";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -163,33 +164,70 @@ const getMessageUsers = async (
 
 type EditableUser = {
   username: string;
-  profile_picture: string;
+  path: string;
+  password: string;
+  confirm_password: string;
 };
 
 const isEditableUser = (obj: any): obj is EditableUser => {
   return (
     typeof (obj as EditableUser).username === "string" &&
-    typeof (obj as EditableUser).profile_picture === "string"
+    typeof (obj as EditableUser).path === "string" &&
+    typeof (obj as EditableUser).password === "string" &&
+    typeof (obj as EditableUser).confirm_password === "string"
   );
+};
+
+type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
+
+const validateUpdateReq = (obj: EditableUser) => {
+  //TODO: validate strong password
+  if (obj.password !== obj.confirm_password) {
+    throw createHttpError(400, "passwords don't match");
+  }
+  if (obj.username && obj.username.length < 3) {
+    throw createHttpError(400, "Username must be at least 3 characters long");
+  }
 };
 
 const editUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    //TODO: manage the edit of the profile picture with file system (multer)
-
-    if (!validateUUIDS(req.params?.userUUID) || !isEditableUser(req.body)) {
-      throw createHttpError(400, "bad request");
+    console.log(req.file);
+    if (!validateUUIDS(req.params?.userUUID)) {
+      throw createHttpError(400, "Invalid user UUID");
     }
 
-    const { userUUID } = req.params;
+    if (!isEditableUser(req.body)) {
+      throw createHttpError(400, "Invalid request body format");
+    }
 
-    const editableUser: EditableUser = req.body;
+    validateUpdateReq(req.body);
+
+    const { userUUID } = req.params;
+    const { confirm_password, password, username, path, ...rest } = req.body;
+
+    const editableUserData: Optional<
+      Omit<User, "created_at" | "deleted_at" | "email" | "id" | "uuid">,
+      "password" | "username" | "profile_picture"
+    > = {
+      profile_picture: path,
+      ...rest,
+    };
+
+    if (password.trim() !== "") {
+      const hashedPassword = await bcrypt.hash(password.trim(), 10);
+      editableUserData.password = hashedPassword;
+    }
+
+    if (path.trim() !== "") {
+      editableUserData.profile_picture = "/uploads/" + path.trim();
+    }
 
     await prisma.user.update({
       where: {
         uuid: userUUID,
       },
-      data: editableUser,
+      data: editableUserData,
     });
 
     res.status(200).json({
@@ -197,11 +235,15 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
       message: "user edited successfully",
     });
   } catch (err: any) {
+    console.log("Error:", err);
     if (err.code === "P2025") {
       throw createHttpError(
         404,
         err.meta.modelName.toLowerCase() + " " + "not found"
       );
+    }
+    if (err.code === "P2002") {
+      throw createHttpError(400, "Username is already taken");
     }
     next(err);
   }
