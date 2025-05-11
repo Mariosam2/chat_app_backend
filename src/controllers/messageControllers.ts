@@ -34,7 +34,6 @@ const getChatUserMessages = async (
             uuid: true,
             content: true,
             created_at: true,
-            Chat: { select: { uuid: true } },
           },
         },
         receivedMessages: {
@@ -47,15 +46,33 @@ const getChatUserMessages = async (
             uuid: true,
             content: true,
             created_at: true,
-            Chat: { select: { uuid: true } },
           },
         },
       },
     });
 
+    const { sentMessages, receivedMessages } = userMessages;
+    // add a status for the client to style the sent and received message + sort by date
+    const allMessages = sentMessages
+      .map((sent) => {
+        return { ...sent, status: "sent" };
+      })
+      .concat(
+        receivedMessages.map((received) => {
+          return { ...received, status: "received" };
+        })
+      )
+      .sort((a, b) => {
+        if (a.created_at > b.created_at) {
+          return 1;
+        } else if (a.created_at < b.created_at) {
+          return -1;
+        }
+        return 0;
+      });
     res.status(200).json({
       success: true,
-      messages: userMessages,
+      messages: allMessages,
     });
   } catch (err: any) {
     if (err.code === "P2025") {

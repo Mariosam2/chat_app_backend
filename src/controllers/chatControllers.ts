@@ -48,7 +48,7 @@ const getUserChats = async (
           },
         },
         messages: {
-          orderBy: { id: "desc" },
+          orderBy: { created_at: "desc" },
           take: 1,
           select: { uuid: true, content: true, created_at: true },
         },

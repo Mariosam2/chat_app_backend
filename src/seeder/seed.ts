@@ -1,6 +1,7 @@
 import { PrismaClient, User, Chat, Message, UserChat } from "../../client";
 import { faker } from "@faker-js/faker";
 import bcrypt from "bcrypt";
+import { getDateFromNow } from "../controllers/helpers";
 const prisma = new PrismaClient();
 
 const chatsNum = 20;
@@ -46,7 +47,7 @@ async function createChats() {
 }
 
 async function createMessages() {
-  const messages: Omit<Message, "id" | "uuid" | "created_at">[] = [];
+  const messages: Omit<Message, "id" | "uuid">[] = [];
 
   for (let i = 0; i < 100; i++) {
     const sender_id = faker.number.bigInt({ min: 1, max: usersNum });
@@ -60,44 +61,47 @@ async function createMessages() {
       },
     });
 
-    const userChatsNum = senderUserChats.length;
+    if (senderUserChats && senderUserChats.length !== 0) {
+      const userChatsNum = senderUserChats.length;
 
-    const senderRandomChatID =
-      senderUserChats[
-        faker.number.int({
-          min: 0,
-          max: userChatsNum > 0 ? userChatsNum - 1 : userChatsNum,
-        })
-      ];
+      const senderRandomChatID =
+        senderUserChats[
+          faker.number.int({
+            min: 0,
+            max: userChatsNum > 0 ? userChatsNum - 1 : userChatsNum,
+          })
+        ];
 
-    const receiver = await prisma.chat.findUnique({
-      where: {
-        id: senderRandomChatID.chat_id,
-      },
-      select: {
-        users: {
-          where: {
-            NOT: { user: { id: sender_id } },
-          },
-          select: {
-            user: { select: { id: true } },
+      const receiver = await prisma.chat.findUnique({
+        where: {
+          id: senderRandomChatID.chat_id,
+        },
+        select: {
+          users: {
+            where: {
+              NOT: { user: { id: sender_id } },
+            },
+            select: {
+              user: { select: { id: true } },
+            },
           },
         },
-      },
-    });
+      });
 
-    const receiver_id = receiver?.users.map((el) => el.user.id)[0];
+      const receiver_id = receiver?.users.map((el) => el.user.id)[0];
 
-    if (senderRandomChatID && receiver_id) {
-      const message = {
-        content: faker.word.words(5),
-        chat_id: senderRandomChatID.chat_id,
-        sender_id,
-        receiver_id,
-      };
-      //check if sender and receiver are not equal before pushing
-      if (message.sender_id !== message.receiver_id) {
-        messages.push(message);
+      if (senderRandomChatID && receiver_id) {
+        const message = {
+          content: faker.word.words(5),
+          chat_id: senderRandomChatID.chat_id,
+          sender_id,
+          receiver_id,
+          created_at: getDateFromNow(-i),
+        };
+        //check if sender and receiver are not equal before pushing
+        if (message.sender_id !== message.receiver_id) {
+          messages.push(message);
+        }
       }
     }
   }
