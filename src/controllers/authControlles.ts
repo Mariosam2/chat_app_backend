@@ -202,6 +202,8 @@ const refreshToken = async (
       getEnvOrThrow("JWT_SECRET_KEY")
     );
 
+    //todo if refresh token expires, logout the user
+
     if (typeof decodedUser === "object") {
       //if refresh token is verified, sign a new access token and serve it
       const refreshedAccessToken = jwt.sign(

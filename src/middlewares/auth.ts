@@ -1,8 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 
 import createHttpError from "http-errors";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload, VerifyCallback, VerifyErrors } from "jsonwebtoken";
 import { getEnvOrThrow } from "../controllers/helpers";
+
+interface MyCustomPayload extends JwtPayload {
+  user_uuid: string;
+}
 
 export const auth = (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -13,15 +17,15 @@ export const auth = (req: Request, res: Response, next: NextFunction) => {
 
     const accessToken = req.header("Authorization")?.split(" ")[1]!;
 
-    const decodedUser = jwt.verify(
-      accessToken,
-      getEnvOrThrow("JWT_SECRET_KEY")
-    );
+    jwt.verify(accessToken, getEnvOrThrow("JWT_SECRET_KEY"), (err, decoded) => {
+      if (err) {
+        throw createHttpError(401, "Unauthorized");
+      } else {
+        req.user = (decoded as MyCustomPayload).user_uuid;
+        next();
+      }
+    });
     //console.log(decodedUser);
-    if (typeof decodedUser !== "string") {
-      req.user = decodedUser.user_uuid;
-      next();
-    }
   } catch (err) {
     next(err);
   }
