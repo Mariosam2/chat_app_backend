@@ -168,12 +168,12 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     const refreshToken = jwt.sign(
       { user_uuid: authUser!.uuid },
       getEnvOrThrow("JWT_SECRET_KEY"),
-      { expiresIn: "1h" }
+      { expiresIn: "7d" }
     );
 
     //set a cookie in the client browser with a longer expiration (refresh token)
     res.cookie("REFRESH_TOKEN", refreshToken, {
-      expires: getDateFromNow(5),
+      expires: getDateFromNow(7),
       httpOnly: true,
       sameSite: "none",
       secure: true,
@@ -215,11 +215,11 @@ const refreshToken = async (
       const newRefreshToken = jwt.sign(
         { user_uuid: decodedUser.user_uuid },
         getEnvOrThrow("JWT_SECRET_KEY"),
-        { expiresIn: "1h" }
+        { expiresIn: "7d" }
       );
 
       res.cookie("REFRESH_TOKEN", newRefreshToken, {
-        expires: getDateFromNow(5),
+        expires: getDateFromNow(7),
         httpOnly: true,
         sameSite: "none",
         secure: true,
@@ -237,4 +237,16 @@ const refreshToken = async (
   }
 };
 
-export { register, login, refreshToken };
+const logout = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.clearCookie("REFRESH_TOKEN");
+    res.status(200).json({
+      success: true,
+      message: "user logged out",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export { register, login, refreshToken, logout };
