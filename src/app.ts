@@ -1,4 +1,4 @@
-import express, { NextFunction } from "express";
+import express from "express";
 import { errorHandler } from "./middlewares/errorHandler";
 import chatRoutes from "./routes/chatRoutes";
 import messageRoutes from "./routes/messageRoutes";
@@ -9,6 +9,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import multer from "multer";
 import { editUser } from "./controllers/userControllers";
+import { search } from "./controllers/searchControllers";
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "public/uploads/");
@@ -49,6 +50,7 @@ app.use("/api/users", userRoutes);
 app.put("/api/users/:userUUID", upload.single("profile_picture"), editUser);
 app.use("/api/chats", chatRoutes);
 app.use("/api/messages", messageRoutes);
+app.get("/api/search/:userUUID", search);
 
 app.use(errorHandler);
 

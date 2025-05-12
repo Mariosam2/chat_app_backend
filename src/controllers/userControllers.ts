@@ -180,7 +180,8 @@ type EditableUser = {
 
 const isEditableUser = (obj: any): obj is EditableUser => {
   return (
-    typeof (obj as EditableUser).username === "string" &&
+    (typeof (obj as EditableUser).username === "string" ||
+      typeof (obj as EditableUser).username === null) &&
     typeof (obj as EditableUser).path === "string" &&
     typeof (obj as EditableUser).password === "string" &&
     typeof (obj as EditableUser).confirm_password === "string"
@@ -197,7 +198,7 @@ const validateUpdateReq = (obj: EditableUser, req: Request) => {
     obj.confirm_password.trim() === ""
   ) {
     req.invalidField = "all";
-    throw createHttpError(400, "Fill at least one field");
+    throw createHttpError(400, "Change at least one field");
   }
 
   if (obj.password !== obj.confirm_password) {
@@ -255,9 +256,9 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
       editableUserData.profile_picture = "/uploads/" + path.trim();
     }
 
-    //console.log(editableUserData);
+    console.log(editableUserData);
 
-    await prisma.user.update({
+    const editedUser = await prisma.user.update({
       where: {
         uuid: userUUID,
       },
@@ -267,6 +268,12 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
     res.status(200).json({
       success: true,
       message: "user edited successfully",
+      user: {
+        uuid: editedUser?.uuid,
+        username: editedUser.username,
+        email: editedUser.email,
+        profile_picture: editedUser.profile_picture,
+      },
     });
   } catch (err: unknown) {
     if (err instanceof PrismaClientKnownRequestError) {
