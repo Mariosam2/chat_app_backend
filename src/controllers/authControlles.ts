@@ -5,6 +5,11 @@ import { PrismaClient, User } from "../../client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { getDateFromNow, getEnvOrThrow } from "./helpers";
+import {
+  PrismaClientInitializationError,
+  PrismaClientKnownRequestError,
+} from "../../client/runtime/library";
+
 const prisma = new PrismaClient();
 
 type RegisterPayload = {
@@ -66,10 +71,13 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
       success: true,
       message: "user registered successfully",
     });
-  } catch (err: any) {
-    if (err.code === "P2002") {
-      throw createHttpError(409, "user already exists");
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2002") {
+        throw createHttpError(409, "user already exists");
+      }
     }
+
     next(err);
   }
 };
@@ -110,13 +118,13 @@ const findUserAtLogin = async (isEmail: boolean, emailOrUsername: string) => {
         },
       });
     });
-  } catch (err: any) {
-    console.log(err);
-    if (err.errorCode.startsWith("P10")) {
-      throw createHttpError(500, "Internal Server Error");
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientInitializationError) {
+      if (err.errorCode && err.errorCode.startsWith("P10")) {
+        throw createHttpError(500, "Internal Server Error");
+      }
     }
-
-    throw createHttpError(401, "wrong credentials");
+    throw createHttpError(404, "User not  found ");
   }
 };
 
@@ -184,7 +192,6 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
       token,
     });
   } catch (err) {
-    console.log(err);
     next(err);
   }
 };

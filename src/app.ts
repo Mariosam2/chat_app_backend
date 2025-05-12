@@ -1,4 +1,4 @@
-import express from "express";
+import express, { NextFunction } from "express";
 import { errorHandler } from "./middlewares/errorHandler";
 import chatRoutes from "./routes/chatRoutes";
 import messageRoutes from "./routes/messageRoutes";
@@ -18,7 +18,20 @@ const storage = multer.diskStorage({
   },
 });
 
-export const upload = multer({ storage: storage });
+const whitelist = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+const maxSize = 10000000;
+
+export const upload = multer({
+  storage: storage,
+  limits: { fileSize: maxSize },
+  fileFilter: (req, file, cb) => {
+    if (!whitelist.includes(file.mimetype)) {
+      return cb(new Error("file is not allowed"));
+    }
+
+    cb(null, true);
+  },
+});
 
 const app = express();
 

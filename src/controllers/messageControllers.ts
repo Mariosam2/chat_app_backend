@@ -3,7 +3,7 @@ import { validateUUIDS } from "./helpers";
 import { Message, PrismaClient } from "../../client";
 import createHttpError from "http-errors";
 import { UUID } from "crypto";
-
+import { PrismaClientKnownRequestError } from "../../client/runtime/library";
 const prisma = new PrismaClient();
 
 const getChatUserMessages = async (
@@ -74,14 +74,15 @@ const getChatUserMessages = async (
       success: true,
       messages: allMessages,
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta?.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
-    //console.log(err);
     next(err);
   }
 };
@@ -120,12 +121,14 @@ const getChatMessages = async (
       success: true,
       messages: chatMessages,
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta?.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
     next(err);
   }
@@ -197,15 +200,24 @@ const checkMessageCreation = async (payload: MessagePayload) => {
       await prisma.message.create({
         data: newMessage,
       });
-    } catch (err: any) {
-      if (err.status === 400) {
-        throw err;
+    } catch (err: unknown) {
+      if (err instanceof PrismaClientKnownRequestError) {
+        if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+          throw createHttpError(
+            404,
+            err.meta?.modelName.toLowerCase() + " " + "not found"
+          );
+        }
+      } else if (createHttpError.isHttpError(err)) {
+        if (err.statusCode === 400) {
+          throw err;
+        }
+      } else {
+        throw createHttpError(
+          424,
+          "an error occured during the message creation"
+        );
       }
-
-      throw createHttpError(
-        424,
-        "an error occured during the message creation"
-      );
     }
   });
 };
@@ -292,12 +304,14 @@ const editMessage = async (req: Request, res: Response, next: NextFunction) => {
       success: true,
       message: "message edited successfully",
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta?.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
     next(err);
   }
@@ -332,14 +346,24 @@ const checkIfUserIsSenderOrReceiver = async (
           [fieldToUpdate]: null,
         },
       });
-    } catch (err: any) {
-      if (err.status === 400) {
-        throw err;
+    } catch (err: unknown) {
+      if (err instanceof PrismaClientKnownRequestError) {
+        if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+          throw createHttpError(
+            404,
+            err.meta?.modelName.toLowerCase() + " " + "not found"
+          );
+        }
+      } else if (createHttpError.isHttpError(err)) {
+        if (err.statusCode === 400) {
+          throw err;
+        }
+      } else {
+        throw createHttpError(
+          424,
+          "an error occured during the message creation"
+        );
       }
-      throw createHttpError(
-        424,
-        "an error occured during the message deletion"
-      );
     }
   });
 };
@@ -399,12 +423,14 @@ const deleteMessageForAll = async (
       success: true,
       message: "message deleted for all",
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta?.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
     next(err);
   }

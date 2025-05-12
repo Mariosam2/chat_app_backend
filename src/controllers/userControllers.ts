@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-
 import { validateUUIDS } from "./helpers";
 import { PrismaClient, User } from "../../client";
 import createHttpError from "http-errors";
 import bcrypt from "bcrypt";
+import validator from "validator";
+import { PrismaClientKnownRequestError } from "../../client/runtime/library";
 
 const prisma = new PrismaClient();
 
@@ -34,12 +35,14 @@ const getLoggedInUser = async (
       success: true,
       authUser: authUser,
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta?.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
     next(err);
   }
@@ -67,12 +70,14 @@ const getUserData = async (req: Request, res: Response, next: NextFunction) => {
       success: true,
       user: userData,
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
     next(err);
   }
@@ -114,12 +119,14 @@ const getChatUsers = async (
       success: true,
       users: chatUsersData.map((user) => user.uuid),
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
     next(err);
   }
@@ -151,12 +158,14 @@ const getMessageUsers = async (
       success: true,
       users: messageUsers,
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
     next(err);
   }
@@ -180,19 +189,39 @@ const isEditableUser = (obj: any): obj is EditableUser => {
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
-const validateUpdateReq = (obj: EditableUser) => {
-  //TODO: validate strong password
+const validateUpdateReq = (obj: EditableUser, req: Request) => {
+  if (
+    obj.username.trim() === "" &&
+    obj.path.trim() === "" &&
+    obj.password.trim() === "" &&
+    obj.confirm_password.trim() === ""
+  ) {
+    req.invalidField = "all";
+    throw createHttpError(400, "Fill at least one field");
+  }
+
   if (obj.password !== obj.confirm_password) {
+    req.invalidField = "password";
     throw createHttpError(400, "passwords don't match");
   }
+
   if (obj.username && obj.username.length < 3) {
+    req.invalidField = "username";
     throw createHttpError(400, "Username must be at least 3 characters long");
+  }
+
+  if (obj.password && !validator.isStrongPassword(obj.password)) {
+    req.invalidField = "password";
+    throw createHttpError(
+      400,
+      "Password must be at least of 8 characters with one lowercase, one uppercase, one number and one symbol"
+    );
   }
 };
 
 const editUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log(req.file);
+    //console.log(req.file, req.body);
     if (!validateUUIDS(req.params?.userUUID)) {
       throw createHttpError(400, "Invalid user UUID");
     }
@@ -201,7 +230,7 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
       throw createHttpError(400, "Invalid request body format");
     }
 
-    validateUpdateReq(req.body);
+    validateUpdateReq(req.body, req);
 
     const { userUUID } = req.params;
     const { confirm_password, password, username, path, ...rest } = req.body;
@@ -210,18 +239,23 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
       Omit<User, "created_at" | "deleted_at" | "email" | "id" | "uuid">,
       "password" | "username" | "profile_picture"
     > = {
-      profile_picture: path,
       ...rest,
     };
+
+    if (username.trim() !== "") {
+      editableUserData.username = username;
+    }
 
     if (password.trim() !== "") {
       const hashedPassword = await bcrypt.hash(password.trim(), 10);
       editableUserData.password = hashedPassword;
     }
-
+    //console.log(path.trim() !== "");
     if (path.trim() !== "") {
       editableUserData.profile_picture = "/uploads/" + path.trim();
     }
+
+    //console.log(editableUserData);
 
     await prisma.user.update({
       where: {
@@ -234,16 +268,18 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
       success: true,
       message: "user edited successfully",
     });
-  } catch (err: any) {
-    console.log("Error:", err);
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
-    }
-    if (err.code === "P2002") {
-      throw createHttpError(400, "Username is already taken");
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta.modelName.toLowerCase() + " " + "not found"
+        );
+      }
+      if (err.code === "P2002") {
+        req.invalidField = "username";
+        throw createHttpError(400, "Username is already taken");
+      }
     }
     next(err);
   }
@@ -264,12 +300,14 @@ const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
       },
       data: { deleted_at: new Date() },
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
     next(err);
   }

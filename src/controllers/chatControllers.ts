@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { validateUUIDS, checkAndFindMatches } from "./helpers";
 import createHttpError from "http-errors";
 import { PrismaClient } from "../../client";
+import { PrismaClientKnownRequestError } from "../../client/runtime/library";
 
 const prisma = new PrismaClient();
 
@@ -71,12 +72,14 @@ const getUserChats = async (
       success: true,
       chats: cleanUserChat,
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta?.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
     next(err);
   }
@@ -137,12 +140,16 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
       success: true,
       message: "chat created successfully",
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      //in this case if a chat is not found it gets created, so only sender and receiver queries
-      //can throw an error
-      throw createHttpError(404, "sender or receiver not found");
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta?.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
+
     next(err);
   }
 };
@@ -198,16 +205,19 @@ const deleteChatForUser = async (
       success: true,
       message: "chat deleted for user only",
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      if (err.meta.modelName === "UserChat") {
-        throw createHttpError(404, "this user doesn't have this chat");
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        if (err.meta.modelName === "UserChat") {
+          throw createHttpError(404, "this user doesn't have this chat");
+        }
+        throw createHttpError(
+          404,
+          err.meta.modelName.toLowerCase() + " " + "not found"
+        );
       }
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
     }
+
     next(err);
   }
 };
@@ -247,15 +257,16 @@ const deleteChatForAll = async (
       success: true,
       message: "chat deleted for all successfully",
     });
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      throw createHttpError(
-        404,
-        err.meta.modelName.toLowerCase() + " " + "not found"
-      );
+  } catch (err: unknown) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta?.modelName.toLowerCase() + " " + "not found"
+        );
+      }
     }
 
-    console.log(err);
     next(err);
   }
 };
