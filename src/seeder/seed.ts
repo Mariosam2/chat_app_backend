@@ -158,7 +158,7 @@ const hasDuplicatesInDb = async (needle: PairOfUsers) => {
 };
 
 async function createUsersChats() {
-  const usersChats: UserChat[] = [];
+  const usersChats: Omit<UserChat, "deleted_at">[] = [];
   const chatUsersArray: PairOfUsers[] = [];
 
   for (let i = 0; i < chatsNum; i++) {

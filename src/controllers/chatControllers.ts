@@ -27,6 +27,9 @@ const getUserChats = async (
           select: {
             chat_id: true,
           },
+          where: {
+            deleted_at: null,
+          },
         },
       },
     });
@@ -34,12 +37,14 @@ const getUserChats = async (
     const userChatIDS = userUserChats.chats.map(
       (chatIdObj) => chatIdObj.chat_id
     );
+
     const userChats = await prisma.chat.findMany({
       where: {
         id: { in: userChatIDS },
       },
       select: {
         uuid: true,
+        created_at: true,
         users: {
           where: { NOT: { user: { uuid: userUUID } } },
           select: {
@@ -125,20 +130,61 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
     )[1];
 
     if (usersHaveChatAlready && chatInCommonId !== null) {
-      throw createHttpError(400, "users have a chat already");
+      const chatInCommon = await prisma.chat.findUniqueOrThrow({
+        where: {
+          id: chatInCommonId,
+        },
+        select: {
+          uuid: true,
+        },
+      });
+
+      res.status(400).json({
+        success: false,
+        message: "users have a chat already",
+        chat: chatInCommon.uuid,
+      });
     }
 
     //if users dont have a chat, create a new one with users relation
-    await prisma.chat.create({
+    const newChat = await prisma.chat.create({
       data: {
         users: {
           create: [{ user_id: sender.id }, { user_id: receiver.id }],
         },
       },
+      select: {
+        uuid: true,
+        created_at: true,
+        users: {
+          where: {
+            user: {
+              id: receiver.id,
+            },
+          },
+          select: {
+            user: {
+              select: {
+                uuid: true,
+                username: true,
+                profile_picture: true,
+              },
+            },
+          },
+        },
+      },
     });
+
+    const { users, ...rest } = newChat;
+
+    const newChatReceiver = users.map((user) => {
+      return user.user;
+    })[0];
+
     res.status(200).json({
       success: true,
       message: "chat created successfully",
+      chat: { ...rest, lastMessage: null, receiver: newChatReceiver },
     });
   } catch (err: unknown) {
     if (err instanceof PrismaClientKnownRequestError) {
@@ -192,18 +238,22 @@ const deleteChatForUser = async (
     });
 
     //drop the table in the userchat having this chat id and user id
-    await prisma.userChat.delete({
+    await prisma.userChat.update({
       where: {
         user_id_chat_id: {
           user_id: userToDisconnect.id,
           chat_id: chatToDisconnect.id,
         },
       },
+      data: {
+        deleted_at: new Date(Date.now()),
+      },
     });
 
     res.status(200).json({
       success: true,
       message: "chat deleted for user only",
+      chat: chatToDisconnect.uuid,
     });
   } catch (err: unknown) {
     if (err instanceof PrismaClientKnownRequestError) {
@@ -234,28 +284,23 @@ const deleteChatForAll = async (
 
     const { chatUUID: chatToDeleteUUID } = req.params;
 
-    const chatToDelete = await prisma.chat.findUniqueOrThrow({
+    const deletedChat = await prisma.chat.delete({
       where: {
         uuid: chatToDeleteUUID,
-      },
-    });
-
-    await prisma.chat.delete({
-      where: {
-        id: chatToDelete.id,
       },
     });
 
     //drop the relation manually since prisma onCascade not working
     await prisma.userChat.deleteMany({
       where: {
-        chat_id: chatToDelete.id,
+        chat_id: deletedChat.id,
       },
     });
 
     res.status(200).json({
       success: true,
       message: "chat deleted for all successfully",
+      chat: deletedChat.uuid,
     });
   } catch (err: unknown) {
     if (err instanceof PrismaClientKnownRequestError) {

@@ -35,10 +35,11 @@ model Chat {
 }
 
 model UserChat {
-  user    User   @relation(fields: [user_id], references: [id])
-  user_id BigInt
-  Chat    Chat   @relation(fields: [chat_id], references: [id])
-  chat_id BigInt
+  user       User      @relation(fields: [user_id], references: [id])
+  user_id    BigInt
+  Chat       Chat      @relation(fields: [chat_id], references: [id])
+  chat_id    BigInt
+  deleted_at DateTime?
 
   @@unique([user_id, chat_id])
   @@map("chat_user")
@@ -49,9 +50,9 @@ model Message {
   uuid        String   @unique @default(uuid())
   content     String   @db.VarChar(500)
   sender      User?    @relation("sender", fields: [sender_id], references: [id])
-  receiver    User     @relation("receiver", fields: [receiver_id], references: [id])
+  receiver    User?    @relation("receiver", fields: [receiver_id], references: [id])
   sender_id   BigInt?
-  receiver_id BigInt
+  receiver_id BigInt?
   Chat        Chat     @relation(fields: [chat_id], references: [id], onDelete: Cascade)
   chat_id     BigInt
   created_at  DateTime @default(now())

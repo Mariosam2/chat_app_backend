@@ -212,6 +212,16 @@ const refreshToken = async (
     //todo if refresh token expires, logout the user
 
     if (typeof decodedUser === "object") {
+      const tokenUser = await prisma.user.findUnique({
+        where: {
+          uuid: decodedUser.user_uuid,
+        },
+      });
+
+      if (!tokenUser) {
+        res.clearCookie("REFRESH_TOKEN");
+        throw createHttpError(404, "user not found");
+      }
       //if refresh token is verified, sign a new access token and serve it
       const refreshedAccessToken = jwt.sign(
         { user_uuid: decodedUser.user_uuid },

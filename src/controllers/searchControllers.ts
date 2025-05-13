@@ -90,7 +90,7 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
       const { sender, receiver, Chat, ...rest } = message;
       if (Chat.uuid !== previousChatUUID) {
         previousChatUUID = Chat.uuid;
-        if (receiver.uuid !== userUUID) {
+        if (receiver && receiver?.uuid !== userUUID) {
           cleanMessages.push({ ...rest, user: receiver, chat: Chat });
         } else if (sender) {
           cleanMessages.push({ ...rest, user: sender, chat: Chat });
