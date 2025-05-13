@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { PrismaClient } from "../../client";
+import { PrismaClient, Message } from "../../client";
 import { validateUUIDS } from "./helpers";
 import createHttpError from "http-errors";
 
@@ -42,9 +42,15 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
         },
         NOT: { sender: null },
       },
-      take: 1,
+
       select: {
+        uuid: true,
         content: true,
+        Chat: {
+          select: {
+            uuid: true,
+          },
+        },
         receiver: {
           select: {
             uuid: true,
@@ -62,13 +68,35 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
       },
     });
 
-    const cleanMessages = messages.map((message) => {
-      const { sender, receiver, ...rest } = message;
-      if (sender?.uuid === userUUID) {
-        return { ...rest, user: receiver };
+    interface SearchedMessage extends Message {
+      user: {
+        uuid: string;
+        username: string;
+        profile_picture: string;
+      };
+      chat: {
+        uuid: string;
+      };
+    }
+
+    let previousChatUUID: string = "";
+    let cleanMessages: Omit<
+      SearchedMessage,
+      "id" | "created_at" | "chat_id" | "sender_id" | "receiver_id"
+    >[] = [];
+
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+      const { sender, receiver, Chat, ...rest } = message;
+      if (Chat.uuid !== previousChatUUID) {
+        previousChatUUID = Chat.uuid;
+        if (receiver.uuid !== userUUID) {
+          cleanMessages.push({ ...rest, user: receiver, chat: Chat });
+        } else if (sender) {
+          cleanMessages.push({ ...rest, user: sender, chat: Chat });
+        }
       }
-      return { ...rest, user: sender };
-    });
+    }
 
     const users = await prisma.user.findMany({
       where: {
