@@ -317,17 +317,13 @@ const editMessage = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-type SenderOrReceiver = {
-  isSender: boolean;
-};
-
 const checkIfUserIsSenderOrReceiver = async (
   messageUUID: string,
-  userInfos: SenderOrReceiver
+  wasMessageSent: boolean
 ) => {
   return prisma.$transaction(async () => {
     try {
-      const fieldToUpdate = userInfos.isSender ? "sender_id" : "receiver_id";
+      const fieldToUpdate = wasMessageSent ? "sender_id" : "receiver_id";
       const deletedMessage = await prisma.message.findUniqueOrThrow({
         where: {
           uuid: messageUUID,
@@ -361,15 +357,11 @@ const checkIfUserIsSenderOrReceiver = async (
       } else {
         throw createHttpError(
           424,
-          "an error occured during the message creation"
+          "an error occured during the message deletion"
         );
       }
     }
   });
-};
-
-const validateSenderOrReceiver = (obj: any): obj is SenderOrReceiver => {
-  return typeof (obj as SenderOrReceiver).isSender === "boolean";
 };
 
 const deleteMessageForUser = async (
@@ -380,7 +372,8 @@ const deleteMessageForUser = async (
   try {
     if (
       !validateUUIDS(req.params?.messageUUID, req.params?.userUUID) ||
-      !validateSenderOrReceiver(req.body)
+      !req.query["sent"] ||
+      typeof (req.query["sent"] === "true") !== "boolean"
     ) {
       throw createHttpError(400, "bad request");
     }
@@ -388,13 +381,17 @@ const deleteMessageForUser = async (
     //I need to check if the user sending the request is the sender or the receiver
     //of the message, and set to null accordingly
     //this informations is passed in the body of the request (type SenderOrReceiver)
-    const userInfos = req.body;
+    const wasMessageSent = req.query["sent"] === "true";
 
-    await checkIfUserIsSenderOrReceiver(messageToDisconnectUUID, userInfos);
+    await checkIfUserIsSenderOrReceiver(
+      messageToDisconnectUUID,
+      wasMessageSent
+    );
 
     res.status(200).json({
       success: true,
       message: "message deleted for user only",
+      message_uuid: messageToDisconnectUUID,
     });
   } catch (err) {
     next(err);
@@ -422,6 +419,7 @@ const deleteMessageForAll = async (
     res.status(200).json({
       success: true,
       message: "message deleted for all",
+      message_uuid: messageToDeleteUUID,
     });
   } catch (err: unknown) {
     if (err instanceof PrismaClientKnownRequestError) {

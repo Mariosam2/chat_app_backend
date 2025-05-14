@@ -130,7 +130,7 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
     )[1];
 
     if (usersHaveChatAlready && chatInCommonId !== null) {
-      const chatInCommon = await prisma.chat.findUniqueOrThrow({
+      const chatInCommon = await prisma.chat.findUnique({
         where: {
           id: chatInCommonId,
         },
@@ -138,12 +138,13 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
           uuid: true,
         },
       });
-
-      res.status(400).json({
-        success: false,
-        message: "users have a chat already",
-        chat: chatInCommon.uuid,
-      });
+      if (chatInCommon) {
+        res.status(400).json({
+          success: false,
+          message: "users have a chat already",
+          chat: chatInCommon.uuid,
+        });
+      }
     }
 
     //if users dont have a chat, create a new one with users relation
@@ -207,7 +208,6 @@ const deleteChatForUser = async (
 ) => {
   try {
     if (!validateUUIDS(req.params?.chatUUID, req.params?.userUUID)) {
-      //console.log(req.params);
       throw createHttpError(400, "bad request");
     }
 
@@ -253,7 +253,7 @@ const deleteChatForUser = async (
     res.status(200).json({
       success: true,
       message: "chat deleted for user only",
-      chat: chatToDisconnect.uuid,
+      chat_uuid: chatToDisconnect.uuid,
     });
   } catch (err: unknown) {
     if (err instanceof PrismaClientKnownRequestError) {
@@ -300,7 +300,7 @@ const deleteChatForAll = async (
     res.status(200).json({
       success: true,
       message: "chat deleted for all successfully",
-      chat: deletedChat.uuid,
+      chat_uuid: deletedChat.uuid,
     });
   } catch (err: unknown) {
     if (err instanceof PrismaClientKnownRequestError) {

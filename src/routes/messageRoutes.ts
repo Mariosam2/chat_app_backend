@@ -16,7 +16,7 @@ router.post("/", createMessage);
 
 router.put("/:messageUUID", editMessage);
 //set to null the foreign key to drop the relation (User one-to-many Messages)
-router.delete("/delete-for-user/:messageUUID/", deleteMessageForUser);
+router.delete("/delete-for-user/:messageUUID/:userUUID", deleteMessageForUser);
 
 router.delete("/delete-for-all/:messageUUID", deleteMessageForAll);
 
