@@ -1,5 +1,8 @@
 import validator from "validator";
 import "express";
+import { PrismaClient } from "../../client";
+
+const prisma = new PrismaClient();
 
 declare module "express" {
   interface Request {
@@ -44,4 +47,41 @@ export const getDateFromNow = (days: number) => {
   const addDays = now.getDate() + days;
   now.setDate(addDays);
   return now;
+};
+
+export const checkIfUserHasMessage = async (
+  authUser: string,
+  message: string,
+  status: string
+) => {
+  const authUserMessages = await prisma.user.findUniqueOrThrow({
+    where: {
+      uuid: authUser,
+    },
+    select: {
+      sentMessages: {
+        where: {
+          uuid: message,
+        },
+      },
+      receivedMessages: {
+        where: {
+          uuid: message,
+        },
+      },
+    },
+  });
+
+  console.log(authUserMessages);
+
+  const messageFound =
+    status === "sent"
+      ? authUserMessages.sentMessages.find(
+          (sentMessage) => sentMessage.uuid === message
+        )
+      : authUserMessages.receivedMessages.find(
+          (receivedMessage) => receivedMessage.uuid === message
+        );
+
+  return messageFound;
 };

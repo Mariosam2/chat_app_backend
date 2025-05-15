@@ -34,6 +34,7 @@ const getChatUserMessages = async (
             uuid: true,
             content: true,
             created_at: true,
+            edited_at: true,
           },
         },
         receivedMessages: {
@@ -46,6 +47,7 @@ const getChatUserMessages = async (
             uuid: true,
             content: true,
             created_at: true,
+            edited_at: true,
           },
         },
       },
@@ -190,7 +192,10 @@ const checkMessageCreation = async (payload: MessagePayload) => {
         throw createHttpError(400, "users are not related to the chat");
       }
 
-      const newMessage: Omit<Message, "id" | "uuid" | "created_at"> = {
+      const newMessage: Omit<
+        Message,
+        "id" | "uuid" | "created_at" | "edited_at"
+      > = {
         content: payload.content,
         sender_id: messageSender.id,
         receiver_id: messageReceiver.id,

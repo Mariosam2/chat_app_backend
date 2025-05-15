@@ -82,50 +82,15 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-type LoginPayload =
-  | { username: string; email: null; password: string }
-  | { email: string; username: null; password: string };
-
+type LoginPayload = { email: string; password: string };
 const isLoginPayload = (obj: any): obj is LoginPayload => {
-  //console.log(obj);
-  //if one between username and email is a string is fine
-  if (typeof obj !== "object" || obj === null) {
-    return false;
+  if (obj) {
+    return (
+      typeof (obj as LoginPayload).email === "string" &&
+      typeof (obj as LoginPayload).password === "string"
+    );
   }
-  if (typeof (obj as LoginPayload).password !== "string") {
-    return false;
-  }
-  const hasEmail =
-    typeof (obj as LoginPayload).email === "string" &&
-    (obj as LoginPayload).email?.trim() !== "";
-  const hasUsername =
-    typeof (obj as LoginPayload).username === "string" &&
-    (obj as LoginPayload).username?.trim() !== "";
-  //console.log(hasEmail, hasUsername);
-
-  return hasEmail !== hasUsername;
-};
-
-const findUserAtLogin = async (isEmail: boolean, emailOrUsername: string) => {
-  //this helper will make a transaction after a check on email or username
-  try {
-    return await prisma.$transaction(async () => {
-      const fieldName = isEmail ? "email" : "username";
-      //console.log(fieldName, emailOrUsername);
-      return await prisma.user.findFirstOrThrow({
-        where: {
-          [fieldName]: emailOrUsername,
-        },
-      });
-    });
-  } catch (err: unknown) {
-    if (err instanceof PrismaClientInitializationError) {
-      if (err.errorCode && err.errorCode.startsWith("P10")) {
-        throw createHttpError(500, "Internal Server Error");
-      }
-    }
-    throw createHttpError(404, "User not  found ");
-  }
+  return false;
 };
 
 const login = async (req: Request, res: Response, next: NextFunction) => {
@@ -135,11 +100,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
       throw createHttpError(400, "bad request");
     }
 
-    const {
-      email: userEmail,
-      username: userUsername,
-      password: userPassword,
-    } = req.body;
+    const { email: userEmail, password: userPassword } = req.body;
 
     //validate the email
     if (userEmail !== null && !validator.isEmail(userEmail)) {
@@ -147,19 +108,16 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
       throw createHttpError(400, "enter a valid email (ex: example@mail.com)");
     }
 
-    const isEmail = userEmail !== null ? true : false;
-    //console.log(isEmail);
-    //in this case i know that if email is null then i get a username since I checked before
-    //for both nullable values
-    const emailOrUsername = userEmail !== null ? userEmail : userUsername!;
-    //console.log(emailOrUsername);
-
-    const authUser = await findUserAtLogin(isEmail, emailOrUsername);
+    const authUser = await prisma.user.findFirstOrThrow({
+      where: {
+        email: userEmail,
+      },
+    });
 
     //check if password is correct
     const isPasswordCorrect = await bcrypt.compare(
       userPassword,
-      authUser!.password
+      authUser.password
     );
 
     if (!isPasswordCorrect) {
@@ -168,13 +126,13 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 
     //generate a token and give it to the client
     const token = jwt.sign(
-      { user_uuid: authUser!.uuid },
+      { user_uuid: authUser.uuid },
       getEnvOrThrow("JWT_SECRET_KEY"),
       { expiresIn: 15 * 60 }
     );
 
     const refreshToken = jwt.sign(
-      { user_uuid: authUser!.uuid },
+      { user_uuid: authUser.uuid },
       getEnvOrThrow("JWT_SECRET_KEY"),
       { expiresIn: "7d" }
     );
@@ -193,6 +151,14 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
       token,
     });
   } catch (err) {
+    if (err instanceof PrismaClientKnownRequestError) {
+      if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
+        throw createHttpError(
+          404,
+          err.meta?.modelName.toLowerCase() + " " + "not found"
+        );
+      }
+    }
     next(err);
   }
 };

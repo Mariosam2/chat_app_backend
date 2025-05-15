@@ -82,7 +82,12 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
     let previousChatUUID: string = "";
     let cleanMessages: Omit<
       SearchedMessage,
-      "id" | "created_at" | "chat_id" | "sender_id" | "receiver_id"
+      | "id"
+      | "created_at"
+      | "chat_id"
+      | "sender_id"
+      | "receiver_id"
+      | "edited_at"
     >[] = [];
 
     for (let i = 0; i < messages.length; i++) {
@@ -103,6 +108,13 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
         username: { contains: query },
         NOT: {
           uuid: userUUID,
+        },
+        chats: {
+          none: {
+            chat_id: {
+              in: userChatIDS,
+            },
+          },
         },
       },
       select: {

@@ -47,7 +47,7 @@ async function createChats() {
 }
 
 async function createMessages() {
-  const messages: Omit<Message, "id" | "uuid">[] = [];
+  const messages: Omit<Message, "id" | "uuid" | "edited_at">[] = [];
 
   for (let i = 0; i < 100; i++) {
     const sender_id = faker.number.bigInt({ min: 1, max: usersNum });
@@ -168,6 +168,12 @@ async function createUsersChats() {
     //console.log(typeof chatRecords);
     const chatId = BigInt(i + (chatRecords === 0 ? 1 : chatRecords));
 
+    const chatExists = await prisma.chat.findUnique({
+      where: {
+        id: chatId,
+      },
+    });
+
     //each chat should have 2 users only (no groups feature)
     // and 2 (pair) users should have 1 chat only
     const senderUserChat = {
@@ -205,7 +211,8 @@ async function createUsersChats() {
       !hasDuplicates(chatUsersArray, chatUsers) &&
       !doUsersHaveChatAlready &&
       isUserChatInDb.length === 0 &&
-      senderId !== receiverId
+      senderId !== receiverId &&
+      chatExists
     ) {
       //console.log(usersChats);
       chatUsersArray.push(chatUsers);
@@ -221,7 +228,6 @@ async function createUsersChats() {
 async function main() {
   await insertUsers();
   await createChats();
-
   await createUsersChats();
   await createMessages();
 }

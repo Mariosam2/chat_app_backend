@@ -129,6 +129,8 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
       receiverChatIds
     )[1];
 
+    //console.log(chatInCommonId, usersHaveChatAlready);
+
     if (usersHaveChatAlready && chatInCommonId !== null) {
       const chatInCommon = await prisma.chat.findUnique({
         where: {
@@ -145,48 +147,49 @@ const createChat = async (req: Request, res: Response, next: NextFunction) => {
           chat: chatInCommon.uuid,
         });
       }
-    }
-
-    //if users dont have a chat, create a new one with users relation
-    const newChat = await prisma.chat.create({
-      data: {
-        users: {
-          create: [{ user_id: sender.id }, { user_id: receiver.id }],
-        },
-      },
-      select: {
-        uuid: true,
-        created_at: true,
-        users: {
-          where: {
-            user: {
-              id: receiver.id,
-            },
+    } else {
+      const newChat = await prisma.chat.create({
+        data: {
+          users: {
+            create: [{ user_id: sender.id }, { user_id: receiver.id }],
           },
-          select: {
-            user: {
-              select: {
-                uuid: true,
-                username: true,
-                profile_picture: true,
+        },
+        select: {
+          uuid: true,
+          created_at: true,
+          users: {
+            where: {
+              user: {
+                id: receiver.id,
+              },
+            },
+            select: {
+              user: {
+                select: {
+                  uuid: true,
+                  username: true,
+                  profile_picture: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
 
-    const { users, ...rest } = newChat;
+      const { users, ...rest } = newChat;
 
-    const newChatReceiver = users.map((user) => {
-      return user.user;
-    })[0];
+      const newChatReceiver = users.map((user) => {
+        return user.user;
+      })[0];
 
-    res.status(200).json({
-      success: true,
-      message: "chat created successfully",
-      chat: { ...rest, lastMessage: null, receiver: newChatReceiver },
-    });
+      res.status(200).json({
+        success: true,
+        message: "chat created successfully",
+        chat: { ...rest, lastMessage: null, receiver: newChatReceiver },
+      });
+    }
+
+    //if users dont have a chat, create a new one with users relation
   } catch (err: unknown) {
     if (err instanceof PrismaClientKnownRequestError) {
       if (err.code === "P2025" && typeof err.meta?.modelName === "string") {
