@@ -54,7 +54,7 @@ export const checkIfUserHasMessage = async (
   message: string,
   status: string
 ) => {
-  const authUserMessages = await prisma.user.findUniqueOrThrow({
+  const authUserMessages = await prisma.user.findUnique({
     where: {
       uuid: authUser,
     },
@@ -72,16 +72,11 @@ export const checkIfUserHasMessage = async (
     },
   });
 
-  console.log(authUserMessages);
+  /*  console.log(authUserMessages); */
 
-  const messageFound =
-    status === "sent"
-      ? authUserMessages.sentMessages.find(
-          (sentMessage) => sentMessage.uuid === message
-        )
-      : authUserMessages.receivedMessages.find(
-          (receivedMessage) => receivedMessage.uuid === message
-        );
+  const messageFound = authUserMessages?.sentMessages.find(
+    (sentMessage) => sentMessage.uuid === message
+  );
 
   return messageFound;
 };

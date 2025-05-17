@@ -29,30 +29,30 @@ const isAuthObject = (obj: unknown): obj is HandshakeAuthObject => {
 
 io.use((socket, next) => {
   try {
-    const authToken = socket.handshake.query.token;
-    console.log(authToken);
-    if (typeof authToken === "string") {
+    const authToken = socket.handshake.headers.cookie?.split("=")[1];
+    if (authToken) {
       const decodedUser = jwt.verify(
         authToken,
         getEnvOrThrow("JWT_SECRET_KEY")
       );
-      console.log(decodedUser);
+
       if (typeof decodedUser === "object") {
-        console.log("updating handshake");
+        //console.log("updating handshake");
         socket.handshake.auth = { user: decodedUser.user_uuid };
         //console.log(socket.handshake.auth);
-        return next();
+        next();
+      } else {
+        socket.emit("logout");
       }
-      return next(new Error("Unauthorized"));
+    } else {
+      socket.emit("logout");
     }
-    return next(new Error("Unauthorized"));
   } catch (err) {
-    return next(new Error("Unauthorized"));
+    socket.emit("logout");
   }
 });
 
 io.on("connection", (socket) => {
-  //console.log(socket.id);
   socket.on("join", ({ room }) => {
     //console.log(room);
     socket.join(room);
@@ -61,9 +61,6 @@ io.on("connection", (socket) => {
     "delete chat",
     async ({ room, chats }: { room: string; chats: Chat[] }) => {
       try {
-        if (!isAuthObject(socket.handshake.auth)) {
-          throw new Error("Unauthorized");
-        }
         const authUser = socket.handshake.auth.user;
 
         const authUserChats = await prisma.user.findUniqueOrThrow({
@@ -91,7 +88,6 @@ io.on("connection", (socket) => {
         const chatFound = authUserChats.chats.find(
           (chat) => chat.Chat.uuid === room
         );
-        //console.log(chatFound, authUserChats, authUser);
 
         if (!chatFound) {
           throw new Error("chat not found");
@@ -115,7 +111,6 @@ io.on("connection", (socket) => {
 
         io.to(room).emit("chat deleted", { updatedChats });
       } catch (err: unknown) {
-        //console.log("chat error");
         socket.emit("chat error", {
           error:
             err instanceof Error
@@ -127,9 +122,6 @@ io.on("connection", (socket) => {
   );
   socket.on("send message", async ({ chatUUID, receiverUUID, content }) => {
     try {
-      if (!isAuthObject(socket.handshake.auth)) {
-        throw new Error("Unauthorized");
-      }
       const senderUUID = socket.handshake.auth.user;
       //the a socket room identifier is the same as the chat identifier
 
@@ -169,35 +161,31 @@ io.on("connection", (socket) => {
         throw new Error("chat not found");
       }
 
-      if (chatFound) {
-        const newMessageData = {
-          sender_id: sender?.id,
-          receiver_id: receiver?.id,
-          chat_id: chatFound.Chat.id,
-          content,
-        };
-        const newMessage = await prisma.message.create({
-          data: newMessageData,
-        });
+      const newMessageData = {
+        sender_id: sender?.id,
+        receiver_id: receiver?.id,
+        chat_id: chatFound.Chat.id,
+        content,
+      };
+      const newMessage = await prisma.message.create({
+        data: newMessageData,
+      });
 
-        const { uuid, content: newMessageContent, created_at } = newMessage;
-        io.to(chatUUID).emit("message created", {
-          message: {
-            uuid,
-            content: newMessageContent,
-            created_at,
-            senderUUID: senderUUID,
-          },
-        });
-      }
+      const { uuid, content: newMessageContent, created_at } = newMessage;
+      io.to(chatUUID).emit("message created", {
+        message: {
+          uuid,
+          content: newMessageContent,
+          created_at,
+          senderUUID: senderUUID,
+        },
+      });
     } catch (err) {
       socket.emit("message error", {
         error:
           err instanceof Error ? err.message : "error while deleting the chat",
       });
     }
-
-    //console.log(socket.handshake.auth, chatUUID, receiver, content);
   });
   socket.on(
     "delete message",
@@ -212,10 +200,6 @@ io.on("connection", (socket) => {
     }) => {
       //console.log("delete message");
       try {
-        if (!isAuthObject(socket.handshake.auth)) {
-          throw new Error("Unauthorized");
-        }
-
         const authUser = socket.handshake.auth.user;
 
         const messageFound = await checkIfUserHasMessage(
@@ -240,7 +224,6 @@ io.on("connection", (socket) => {
           messageUUID: deletedMessage.uuid,
         });
       } catch (err: unknown) {
-        //console.log("chat error");
         socket.emit("message error", {
           error:
             err instanceof Error
@@ -264,12 +247,11 @@ io.on("connection", (socket) => {
       status: string;
     }) => {
       try {
-        if (!isAuthObject(socket.handshake.auth)) {
-          throw new Error("Unauthorized");
-        }
-        const authUser = socket.handshake.auth.user;
-        console.log(room, message, newMessage, status, authUser);
+        //console.log("edit message");
 
+        const authUser = socket.handshake.auth.user;
+        //console.log(room, message, newMessage, status, authUser);
+        console.log(authUser);
         const messageFound = await checkIfUserHasMessage(
           authUser,
           message,
@@ -300,6 +282,8 @@ io.on("connection", (socket) => {
           },
         });
 
+        //console.log(updatedMessage);
+
         const { sender, ...rest } = updatedMessage;
 
         io.to(room).emit("message updated", {
@@ -308,7 +292,7 @@ io.on("connection", (socket) => {
           senderUUID: sender?.uuid,
         });
       } catch (err) {
-        console.log(err);
+        //console.log(err);
         socket.emit("message error", {
           error:
             err instanceof Error
@@ -318,6 +302,35 @@ io.on("connection", (socket) => {
       }
     }
   );
+
+  socket.on("delete user", async ({ user }) => {
+    try {
+      const authUser = socket.handshake.auth.user;
+      const userFound = await prisma.user.findUnique({
+        where: {
+          uuid: user,
+        },
+      });
+      if (authUser !== user || !userFound) {
+        throw new Error("couldn't find the user");
+      }
+
+      await prisma.user.update({
+        where: {
+          uuid: user,
+        },
+        data: {
+          deleted_at: new Date(Date.now()),
+        },
+      });
+      socket.emit("logout");
+    } catch (err) {
+      socket.emit("user error", {
+        error:
+          err instanceof Error ? err.message : "error while deleting the user",
+      });
+    }
+  });
 });
 
 server.listen(process.env.SERVER_PORT, () => {

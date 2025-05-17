@@ -41,6 +41,16 @@ const getUserChats = async (
     const userChats = await prisma.chat.findMany({
       where: {
         id: { in: userChatIDS },
+        users: {
+          some: {
+            user: {
+              deleted_at: null,
+              uuid: {
+                not: userUUID,
+              },
+            },
+          },
+        },
       },
       select: {
         uuid: true,

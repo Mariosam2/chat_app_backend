@@ -146,9 +146,12 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
       /* secure: true, */
     });
 
+    const { uuid, username, profile_picture } = authUser;
+
     res.status(200).json({
       success: true,
       token,
+      authUser: { uuid, username, profile_picture },
     });
   } catch (err) {
     if (err instanceof PrismaClientKnownRequestError) {

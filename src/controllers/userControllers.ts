@@ -28,7 +28,6 @@ const getLoggedInUser = async (
         uuid: true,
         username: true,
         profile_picture: true,
-        email: true,
       },
     });
     res.status(200).json({
