@@ -255,7 +255,7 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
       editableUserData.profile_picture = "/uploads/" + path.trim();
     }
 
-    console.log(editableUserData);
+    //console.log(editableUserData);
 
     const editedUser = await prisma.user.update({
       where: {

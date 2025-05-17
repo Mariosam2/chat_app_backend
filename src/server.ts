@@ -251,7 +251,7 @@ io.on("connection", (socket) => {
 
         const authUser = socket.handshake.auth.user;
         //console.log(room, message, newMessage, status, authUser);
-        console.log(authUser);
+        //console.log(authUser);
         const messageFound = await checkIfUserHasMessage(
           authUser,
           message,
@@ -323,6 +323,52 @@ io.on("connection", (socket) => {
           deleted_at: new Date(Date.now()),
         },
       });
+
+      const userChatsToUpdate = await prisma.userChat.updateMany({
+        where: {
+          user: {
+            uuid: user,
+          },
+        },
+        data: {
+          deleted_at: new Date(Date.now()),
+        },
+      });
+
+      await prisma.chat.deleteMany({
+        where: {
+          users: {
+            some: {
+              user: {
+                uuid: user,
+              },
+            },
+          },
+        },
+      });
+
+      await prisma.message.updateMany({
+        where: {
+          sender: {
+            uuid: user,
+          },
+        },
+        data: {
+          sender_id: null,
+        },
+      });
+
+      await prisma.message.updateMany({
+        where: {
+          receiver: {
+            uuid: user,
+          },
+        },
+        data: {
+          receiver_id: null,
+        },
+      });
+
       socket.emit("logout");
     } catch (err) {
       socket.emit("user error", {

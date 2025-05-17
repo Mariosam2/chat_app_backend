@@ -27,6 +27,7 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
           },
         },
       },
+
       select: {
         id: true,
       },
@@ -67,6 +68,8 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
         },
       },
     });
+
+    //console.log(messages);
 
     interface SearchedMessage extends Message {
       user: {
@@ -109,6 +112,7 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
         NOT: {
           uuid: userUUID,
         },
+        deleted_at: null,
         chats: {
           none: {
             chat_id: {

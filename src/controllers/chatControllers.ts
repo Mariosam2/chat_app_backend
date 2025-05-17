@@ -44,7 +44,6 @@ const getUserChats = async (
         users: {
           some: {
             user: {
-              deleted_at: null,
               uuid: {
                 not: userUUID,
               },
@@ -65,6 +64,14 @@ const getUserChats = async (
         },
         messages: {
           orderBy: { created_at: "desc" },
+          where: {
+            AND: {
+              NOT: {
+                sender_id: null,
+                receiver_id: null,
+              },
+            },
+          },
           take: 1,
           select: { uuid: true, content: true, created_at: true },
         },
