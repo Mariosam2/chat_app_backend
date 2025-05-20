@@ -226,7 +226,11 @@ const refreshToken = async (
       });
 
       if (!tokenUser) {
-        res.clearCookie("REFRESH_TOKEN");
+        res.clearCookie("REFRESH_TOKEN", {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        });
         throw createHttpError(404, "user not found");
       }
       //if refresh token is verified, sign a new access token and serve it

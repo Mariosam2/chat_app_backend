@@ -215,7 +215,11 @@ const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                 },
             });
             if (!tokenUser) {
-                res.clearCookie("REFRESH_TOKEN");
+                res.clearCookie("REFRESH_TOKEN", {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "none",
+                });
                 throw (0, http_errors_1.default)(404, "user not found");
             }
             //if refresh token is verified, sign a new access token and serve it
