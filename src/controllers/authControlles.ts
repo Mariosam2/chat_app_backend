@@ -174,9 +174,8 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     res.cookie("REFRESH_TOKEN", refreshToken, {
       expires: getDateFromNow(7),
       httpOnly: true,
-      sameSite: "lax",
-      //to uncomment for production
-      /* secure: true, */
+      sameSite: "strict",
+      secure: true,
     });
 
     const { uuid, username, profile_picture } = authUser;
@@ -245,9 +244,8 @@ const refreshToken = async (
       res.cookie("REFRESH_TOKEN", newRefreshToken, {
         expires: getDateFromNow(7),
         httpOnly: true,
-        sameSite: "lax",
-        /* secure: true, */
-        //add samesite none and secure true when deploying
+        sameSite: "strict",
+        secure: true,
       });
 
       res.status(200).json({
