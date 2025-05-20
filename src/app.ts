@@ -10,6 +10,7 @@ import cors from "cors";
 import multer from "multer";
 import { editUser } from "./controllers/userControllers";
 import { search } from "./controllers/searchControllers";
+import { getEnvOrThrow } from "./controllers/helpers";
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "public/images/");
@@ -37,7 +38,7 @@ export const upload = multer({
 const app = express();
 
 const corsOptions = {
-  origin: ["https://idyllic-marzipan-b90e38.netlify.app"],
+  origin: [getEnvOrThrow("CLIENT_ORIGIN")],
   credentials: true,
 };
 app.use(cors(corsOptions));

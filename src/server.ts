@@ -11,7 +11,7 @@ const server = createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "https://idyllic-marzipan-b90e38.netlify.app",
+    origin: getEnvOrThrow("CLIENT_ORIGIN"),
     credentials: true,
   },
 });
@@ -22,7 +22,7 @@ interface HandshakeAuthObject {
 
 io.use((socket, next) => {
   try {
-    console.log(socket.handshake.headers);
+    //console.log(socket.handshake.headers);
     const authToken = socket.handshake.headers.cookie?.split("=")[1];
     if (authToken) {
       const decodedUser = jwt.verify(

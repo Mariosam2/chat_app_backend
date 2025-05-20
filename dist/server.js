@@ -33,14 +33,14 @@ const prisma = new client_1.PrismaClient();
 const server = (0, http_1.createServer)(app_1.default);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: "https://idyllic-marzipan-b90e38.netlify.app",
+        origin: (0, helpers_1.getEnvOrThrow)("CLIENT_ORIGIN"),
         credentials: true,
     },
 });
 io.use((socket, next) => {
     var _a;
     try {
-        console.log(socket.handshake.headers);
+        //console.log(socket.handshake.headers);
         const authToken = (_a = socket.handshake.headers.cookie) === null || _a === void 0 ? void 0 : _a.split("=")[1];
         if (authToken) {
             const decodedUser = jsonwebtoken_1.default.verify(authToken, (0, helpers_1.getEnvOrThrow)("JWT_SECRET_KEY"));

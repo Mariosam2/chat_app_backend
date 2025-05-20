@@ -144,6 +144,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     const authUser = await prisma.user.findFirstOrThrow({
       where: {
         email: userEmail,
+        deleted_at: null,
       },
     });
 

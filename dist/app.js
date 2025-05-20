@@ -16,6 +16,7 @@ const cors_1 = __importDefault(require("cors"));
 const multer_1 = __importDefault(require("multer"));
 const userControllers_1 = require("./controllers/userControllers");
 const searchControllers_1 = require("./controllers/searchControllers");
+const helpers_1 = require("./controllers/helpers");
 const storage = multer_1.default.diskStorage({
     destination: function (req, file, cb) {
         cb(null, "public/images/");
@@ -38,7 +39,7 @@ exports.upload = (0, multer_1.default)({
 });
 const app = (0, express_1.default)();
 const corsOptions = {
-    origin: ["https://idyllic-marzipan-b90e38.netlify.app"],
+    origin: [(0, helpers_1.getEnvOrThrow)("CLIENT_ORIGIN")],
     credentials: true,
 };
 app.use((0, cors_1.default)(corsOptions));

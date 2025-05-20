@@ -164,6 +164,7 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
         const authUser = yield prisma.user.findFirstOrThrow({
             where: {
                 email: userEmail,
+                deleted_at: null,
             },
         });
         //check if password is correct
