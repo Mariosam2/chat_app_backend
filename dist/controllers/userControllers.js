@@ -217,7 +217,7 @@ const editUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
         }
         //console.log(path.trim() !== "");
         if (path.trim() !== "") {
-            editableUserData.profile_picture = "/uploads/" + path.trim();
+            editableUserData.profile_picture = "/images/" + path.trim();
         }
         //console.log(editableUserData);
         const editedUser = yield prisma.user.update({

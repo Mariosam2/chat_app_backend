@@ -18,7 +18,7 @@ const userControllers_1 = require("./controllers/userControllers");
 const searchControllers_1 = require("./controllers/searchControllers");
 const storage = multer_1.default.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, "public/uploads/");
+        cb(null, "public/images/");
     },
     filename: function (req, file, cb) {
         cb(null, file.originalname);

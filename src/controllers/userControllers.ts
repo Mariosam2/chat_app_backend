@@ -252,7 +252,7 @@ const editUser = async (req: Request, res: Response, next: NextFunction) => {
     }
     //console.log(path.trim() !== "");
     if (path.trim() !== "") {
-      editableUserData.profile_picture = "/uploads/" + path.trim();
+      editableUserData.profile_picture = "/images/" + path.trim();
     }
 
     //console.log(editableUserData);
