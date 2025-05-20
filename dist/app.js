@@ -38,7 +38,7 @@ exports.upload = (0, multer_1.default)({
 });
 const app = (0, express_1.default)();
 const corsOptions = {
-    origin: ["http://localhost:5173"],
+    origin: ["https://idyllic-marzipan-b90e38.netlify.app"],
     credentials: true,
 };
 app.use((0, cors_1.default)(corsOptions));

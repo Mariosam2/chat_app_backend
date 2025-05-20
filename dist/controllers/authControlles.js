@@ -178,9 +178,8 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
         res.cookie("REFRESH_TOKEN", refreshToken, {
             expires: (0, helpers_1.getDateFromNow)(7),
             httpOnly: true,
-            sameSite: "lax",
-            //to uncomment for production
-            /* secure: true, */
+            sameSite: "strict",
+            secure: true,
         });
         const { uuid, username, profile_picture } = authUser;
         res.status(200).json({
@@ -224,9 +223,8 @@ const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             res.cookie("REFRESH_TOKEN", newRefreshToken, {
                 expires: (0, helpers_1.getDateFromNow)(7),
                 httpOnly: true,
-                sameSite: "lax",
-                /* secure: true, */
-                //add samesite none and secure true when deploying
+                sameSite: "strict",
+                secure: true,
             });
             res.status(200).json({
                 success: true,
