@@ -56,7 +56,7 @@ io.use((socket, next) => {
                 next();
             }
             else {
-                socket.emit("logout");
+                socket.emit("logout", { handsake: socket.handshake.headers });
             }
         }
         else {

@@ -42,7 +42,7 @@ io.use((socket, next) => {
         //console.log(socket.handshake.auth);
         next();
       } else {
-        socket.emit("logout");
+        socket.emit("logout", { handsake: socket.handshake.headers });
       }
     } else {
       socket.emit("logout");
