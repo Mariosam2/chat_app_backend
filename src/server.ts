@@ -20,13 +20,6 @@ interface HandshakeAuthObject {
   user: string;
 }
 
-const isAuthObject = (obj: unknown): obj is HandshakeAuthObject => {
-  if (obj) {
-    return typeof (obj as HandshakeAuthObject).user === "string";
-  }
-  return false;
-};
-
 io.use((socket, next) => {
   try {
     console.log(socket.handshake.headers);

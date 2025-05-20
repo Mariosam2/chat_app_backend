@@ -20,7 +20,7 @@ const storage = multer.diskStorage({
 });
 
 const whitelist = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
-const maxSize = 10000000;
+const maxSize = 5000000;
 
 export const upload = multer({
   storage: storage,

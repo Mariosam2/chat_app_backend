@@ -37,7 +37,7 @@ model Chat {
 model UserChat {
   user       User      @relation(fields: [user_id], references: [id])
   user_id    BigInt
-  Chat       Chat      @relation(fields: [chat_id], references: [id])
+  Chat       Chat      @relation(fields: [chat_id], references: [id], onDelete: Cascade)
   chat_id    BigInt
   deleted_at DateTime?
 

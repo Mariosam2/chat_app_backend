@@ -37,12 +37,6 @@ const io = new socket_io_1.Server(server, {
         credentials: true,
     },
 });
-const isAuthObject = (obj) => {
-    if (obj) {
-        return typeof obj.user === "string";
-    }
-    return false;
-};
 io.use((socket, next) => {
     var _a;
     try {
