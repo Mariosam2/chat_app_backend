@@ -46,6 +46,7 @@ const isAuthObject = (obj) => {
 io.use((socket, next) => {
     var _a;
     try {
+        console.log(socket.handshake.headers);
         const authToken = (_a = socket.handshake.headers.cookie) === null || _a === void 0 ? void 0 : _a.split("=")[1];
         if (authToken) {
             const decodedUser = jsonwebtoken_1.default.verify(authToken, (0, helpers_1.getEnvOrThrow)("JWT_SECRET_KEY"));
@@ -56,7 +57,7 @@ io.use((socket, next) => {
                 next();
             }
             else {
-                socket.emit("logout", { handsake: socket.handshake.headers });
+                socket.emit("logout");
             }
         }
         else {

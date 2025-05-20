@@ -29,6 +29,7 @@ const isAuthObject = (obj: unknown): obj is HandshakeAuthObject => {
 
 io.use((socket, next) => {
   try {
+    console.log(socket.handshake.headers);
     const authToken = socket.handshake.headers.cookie?.split("=")[1];
     if (authToken) {
       const decodedUser = jwt.verify(
@@ -42,7 +43,7 @@ io.use((socket, next) => {
         //console.log(socket.handshake.auth);
         next();
       } else {
-        socket.emit("logout", { handsake: socket.handshake.headers });
+        socket.emit("logout");
       }
     } else {
       socket.emit("logout");
