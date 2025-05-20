@@ -33,7 +33,7 @@ const prisma = new client_1.PrismaClient();
 const server = (0, http_1.createServer)(app_1.default);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: "http://localhost:5173",
+        origin: "https://idyllic-marzipan-b90e38.netlify.app",
         credentials: true,
     },
 });
