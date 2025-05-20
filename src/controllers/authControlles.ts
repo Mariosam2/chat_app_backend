@@ -174,7 +174,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     res.cookie("REFRESH_TOKEN", refreshToken, {
       expires: getDateFromNow(7),
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "none",
       secure: true,
     });
 
@@ -244,7 +244,7 @@ const refreshToken = async (
       res.cookie("REFRESH_TOKEN", newRefreshToken, {
         expires: getDateFromNow(7),
         httpOnly: true,
-        sameSite: "strict",
+        sameSite: "none",
         secure: true,
       });
 
