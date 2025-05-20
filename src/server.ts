@@ -99,10 +99,7 @@ io.on("connection", (socket) => {
           },
         });
 
-        const updatedChats = chats.filter(
-          (chat) => deletedChat.uuid !== chat.uuid
-        );
-        io.to(room).emit("chat deleted", { updatedChats });
+        io.to(room).emit("chat deleted", { chatUUID: deletedChat.uuid });
       } catch (err: unknown) {
         socket.emit("chat error", {
           error:

@@ -26,20 +26,23 @@ const generatePassword = (plaintextPassword, saltRounds) => __awaiter(void 0, vo
 });
 function insertUsers() {
     return __awaiter(this, void 0, void 0, function* () {
-        const randomUsers = [];
-        for (let i = 0; i < usersNum; i++) {
-            const user = {
-                username: faker_1.faker.internet.username(),
-                email: faker_1.faker.internet.email(),
-                password: yield generatePassword("strongpassword", 12),
-                deleted_at: null,
-            };
-            randomUsers.push(user);
+        const userRecords = yield prisma.user.count();
+        if (userRecords === 0) {
+            const randomUsers = [];
+            for (let i = 0; i < usersNum; i++) {
+                const user = {
+                    username: faker_1.faker.internet.username(),
+                    email: faker_1.faker.internet.email(),
+                    password: yield generatePassword("strongpassword", 12),
+                    deleted_at: null,
+                };
+                randomUsers.push(user);
+            }
+            //console.log(randomUsers);
+            yield prisma.user.createMany({
+                data: randomUsers,
+            });
         }
-        //console.log(randomUsers);
-        yield prisma.user.createMany({
-            data: randomUsers,
-        });
     });
 }
 function createChats() {

@@ -17,23 +17,26 @@ const generatePassword = async (
 };
 
 async function insertUsers() {
-  const randomUsers: Omit<
-    User,
-    "id" | "uuid" | "profile_picture" | "created_at"
-  >[] = [];
-  for (let i = 0; i < usersNum; i++) {
-    const user = {
-      username: faker.internet.username(),
-      email: faker.internet.email(),
-      password: await generatePassword("strongpassword", 12),
-      deleted_at: null,
-    };
-    randomUsers.push(user);
+  const userRecords = await prisma.user.count();
+  if (userRecords === 0) {
+    const randomUsers: Omit<
+      User,
+      "id" | "uuid" | "profile_picture" | "created_at"
+    >[] = [];
+    for (let i = 0; i < usersNum; i++) {
+      const user = {
+        username: faker.internet.username(),
+        email: faker.internet.email(),
+        password: await generatePassword("strongpassword", 12),
+        deleted_at: null,
+      };
+      randomUsers.push(user);
+    }
+    //console.log(randomUsers);
+    await prisma.user.createMany({
+      data: randomUsers,
+    });
   }
-  //console.log(randomUsers);
-  await prisma.user.createMany({
-    data: randomUsers,
-  });
 }
 
 async function createChats() {
