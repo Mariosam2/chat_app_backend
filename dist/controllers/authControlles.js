@@ -219,6 +219,8 @@ const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                     httpOnly: true,
                     secure: true,
                     sameSite: "none",
+                    domain: "chatappbackend-production-3fab.up.railway.app",
+                    path: "/",
                 });
                 throw (0, http_errors_1.default)(404, "user not found");
             }
@@ -245,7 +247,13 @@ const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
 exports.refreshToken = refreshToken;
 const logout = (req, res, next) => {
     try {
-        res.clearCookie("REFRESH_TOKEN");
+        res.clearCookie("REFRESH_TOKEN", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            domain: "chatappbackend-production-3fab.up.railway.app",
+            path: "/",
+        });
         res.status(200).json({
             success: true,
             message: "user logged out",

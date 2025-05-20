@@ -230,6 +230,8 @@ const refreshToken = async (
           httpOnly: true,
           secure: true,
           sameSite: "none",
+          domain: "chatappbackend-production-3fab.up.railway.app",
+          path: "/",
         });
         throw createHttpError(404, "user not found");
       }
@@ -266,7 +268,13 @@ const refreshToken = async (
 
 const logout = (req: Request, res: Response, next: NextFunction) => {
   try {
-    res.clearCookie("REFRESH_TOKEN");
+    res.clearCookie("REFRESH_TOKEN", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      domain: "chatappbackend-production-3fab.up.railway.app",
+      path: "/",
+    });
     res.status(200).json({
       success: true,
       message: "user logged out",

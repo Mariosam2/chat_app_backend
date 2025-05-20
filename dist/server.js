@@ -106,7 +106,6 @@ io.on("connection", (socket) => {
                 },
             });
             const updatedChats = chats.filter((chat) => deletedChat.uuid !== chat.uuid);
-            console.log(room);
             io.to(room).emit("chat deleted", { updatedChats });
         }
         catch (err) {
