@@ -124,6 +124,7 @@ io.on("connection", (socket) => {
     try {
       const senderUUID = socket.handshake.auth.user;
       //the a socket room identifier is the same as the chat identifier
+      //console.log(chatUUID, senderUUID);
 
       const sender = await prisma.user.findUniqueOrThrow({
         where: {
@@ -143,6 +144,11 @@ io.on("connection", (socket) => {
             uuid: {
               in: [senderUUID, receiverUUID],
             },
+            chats: {
+              some: {
+                deleted_at: null,
+              },
+            },
           },
         },
         select: {
@@ -154,6 +160,7 @@ io.on("connection", (socket) => {
           },
         },
       });
+      //console.log(userChats);
 
       const chatFound = userChats.find((chat) => chat.Chat.uuid === chatUUID);
 
@@ -181,6 +188,7 @@ io.on("connection", (socket) => {
         },
       });
     } catch (err) {
+      //console.log(err instanceof Error);
       socket.emit("message error", {
         error:
           err instanceof Error ? err.message : "error while deleting the chat",
@@ -379,6 +387,6 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(process.env.SERVER_PORT, () => {
+server.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.SERVER_PORT}`);
 });

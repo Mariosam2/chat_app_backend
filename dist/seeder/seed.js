@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("../../client");
 const faker_1 = require("@faker-js/faker");
 const bcrypt_1 = __importDefault(require("bcrypt"));
+const helpers_1 = require("../controllers/helpers");
 const prisma = new client_1.PrismaClient();
 const chatsNum = 20;
 const usersNum = 10;
@@ -30,8 +31,7 @@ function insertUsers() {
             const user = {
                 username: faker_1.faker.internet.username(),
                 email: faker_1.faker.internet.email(),
-                password: yield generatePassword("strongpassword", 10),
-                created_at: new Date(),
+                password: yield generatePassword("strongpassword", 12),
                 deleted_at: null,
             };
             randomUsers.push(user);
@@ -45,13 +45,7 @@ function insertUsers() {
 function createChats() {
     return __awaiter(this, void 0, void 0, function* () {
         chatRecords = yield prisma.chat.count();
-        const chats = [];
-        for (let i = 0; i < chatsNum; i++) {
-            const chat = {
-                created_at: new Date(),
-            };
-            chats.push(chat);
-        }
+        const chats = new Array(chatsNum).fill({});
         yield prisma.chat.createMany({
             data: chats,
         });
@@ -61,16 +55,51 @@ function createMessages() {
     return __awaiter(this, void 0, void 0, function* () {
         const messages = [];
         for (let i = 0; i < 100; i++) {
-            const message = {
-                content: faker_1.faker.word.words(5),
-                chat_id: faker_1.faker.number.bigInt({ min: 1, max: chatsNum }),
-                sender_id: faker_1.faker.number.bigInt({ min: 1, max: usersNum }),
-                receiver_id: faker_1.faker.number.bigInt({ min: 1, max: usersNum }),
-                created_at: new Date(),
-            };
-            //check if sender and receiver are not equal before pushing
-            if (message.sender_id !== message.receiver_id) {
-                messages.push(message);
+            const sender_id = faker_1.faker.number.bigInt({ min: 1, max: usersNum });
+            //seeding the messages following the relations between users and chats
+            const senderUserChats = yield prisma.userChat.findMany({
+                where: {
+                    user_id: sender_id,
+                },
+                select: {
+                    chat_id: true,
+                },
+            });
+            if (senderUserChats && senderUserChats.length !== 0) {
+                const userChatsNum = senderUserChats.length;
+                const senderRandomChatID = senderUserChats[faker_1.faker.number.int({
+                    min: 0,
+                    max: userChatsNum > 0 ? userChatsNum - 1 : userChatsNum,
+                })];
+                const receiver = yield prisma.chat.findUnique({
+                    where: {
+                        id: senderRandomChatID.chat_id,
+                    },
+                    select: {
+                        users: {
+                            where: {
+                                NOT: { user: { id: sender_id } },
+                            },
+                            select: {
+                                user: { select: { id: true } },
+                            },
+                        },
+                    },
+                });
+                const receiver_id = receiver === null || receiver === void 0 ? void 0 : receiver.users.map((el) => el.user.id)[0];
+                if (senderRandomChatID && receiver_id) {
+                    const message = {
+                        content: faker_1.faker.word.words(5),
+                        chat_id: senderRandomChatID.chat_id,
+                        sender_id,
+                        receiver_id,
+                        created_at: (0, helpers_1.getDateFromNow)(-i),
+                    };
+                    //check if sender and receiver are not equal before pushing
+                    if (message.sender_id !== message.receiver_id) {
+                        messages.push(message);
+                    }
+                }
             }
         }
         yield prisma.message.createMany({
@@ -120,6 +149,11 @@ function createUsersChats() {
             //everytime i run seeder i want to start from the number of chats already present inside database
             //console.log(typeof chatRecords);
             const chatId = BigInt(i + (chatRecords === 0 ? 1 : chatRecords));
+            const chatExists = yield prisma.chat.findUnique({
+                where: {
+                    id: chatId,
+                },
+            });
             //each chat should have 2 users only (no groups feature)
             // and 2 (pair) users should have 1 chat only
             const senderUserChat = {
@@ -152,7 +186,8 @@ function createUsersChats() {
             if (!hasDuplicates(chatUsersArray, chatUsers) &&
                 !doUsersHaveChatAlready &&
                 isUserChatInDb.length === 0 &&
-                senderId !== receiverId) {
+                senderId !== receiverId &&
+                chatExists) {
                 //console.log(usersChats);
                 chatUsersArray.push(chatUsers);
                 usersChats.push(senderUserChat, receiverUserChat);
@@ -167,8 +202,8 @@ function main() {
     return __awaiter(this, void 0, void 0, function* () {
         yield insertUsers();
         yield createChats();
-        yield createMessages();
         yield createUsersChats();
+        yield createMessages();
     });
 }
 main()

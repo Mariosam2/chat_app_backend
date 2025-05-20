@@ -8,6 +8,6 @@ router.get("/:userUUID", chatControllers_1.getUserChats);
 //handled using request body
 router.post("/", chatControllers_1.createChat);
 //delete the table in userchat to delete only for user
-router.delete("/:chatUUID/:userUUID", chatControllers_1.deleteForMe);
-router.delete("/:chatUUID", chatControllers_1.deleteForAll);
+router.delete("/:chatUUID/:userUUID", chatControllers_1.deleteChatForUser);
+router.delete("/:chatUUID", chatControllers_1.deleteChatForAll);
 exports.default = router;

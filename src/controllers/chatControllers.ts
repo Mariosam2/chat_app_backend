@@ -270,6 +270,8 @@ const deleteChatForUser = async (
       },
     });
 
+    //console.log(chatToDisconnectUUID);
+
     res.status(200).json({
       success: true,
       message: "chat deleted for user only",
