@@ -179,7 +179,7 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
         res.cookie("REFRESH_TOKEN", refreshToken, {
             expires: (0, helpers_1.getDateFromNow)(7),
             httpOnly: true,
-            sameSite: "none",
+            sameSite: "lax",
             secure: true,
         });
         const { uuid, username, profile_picture } = authUser;
@@ -217,7 +217,7 @@ const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             if (!tokenUser) {
                 res.clearCookie("REFRESH_TOKEN", {
                     httpOnly: true,
-                    sameSite: "none",
+                    sameSite: "lax",
                     secure: true,
                     path: "/",
                 });
@@ -229,7 +229,7 @@ const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             res.cookie("REFRESH_TOKEN", newRefreshToken, {
                 expires: (0, helpers_1.getDateFromNow)(7),
                 httpOnly: true,
-                sameSite: "none",
+                sameSite: "lax",
                 secure: true,
             });
             res.status(200).json({
@@ -248,7 +248,7 @@ const logout = (req, res, next) => {
     try {
         res.clearCookie("REFRESH_TOKEN", {
             httpOnly: true,
-            sameSite: "none",
+            sameSite: "lax",
             secure: true,
             path: "/",
         });

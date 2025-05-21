@@ -175,7 +175,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     res.cookie("REFRESH_TOKEN", refreshToken, {
       expires: getDateFromNow(7),
       httpOnly: true,
-      sameSite: "none",
+      sameSite: "lax",
       secure: true,
     });
 
@@ -228,7 +228,7 @@ const refreshToken = async (
       if (!tokenUser) {
         res.clearCookie("REFRESH_TOKEN", {
           httpOnly: true,
-          sameSite: "none",
+          sameSite: "lax",
           secure: true,
           path: "/",
         });
@@ -250,7 +250,7 @@ const refreshToken = async (
       res.cookie("REFRESH_TOKEN", newRefreshToken, {
         expires: getDateFromNow(7),
         httpOnly: true,
-        sameSite: "none",
+        sameSite: "lax",
         secure: true,
       });
 
@@ -269,7 +269,7 @@ const logout = (req: Request, res: Response, next: NextFunction) => {
   try {
     res.clearCookie("REFRESH_TOKEN", {
       httpOnly: true,
-      sameSite: "none",
+      sameSite: "lax",
       secure: true,
       path: "/",
     });
