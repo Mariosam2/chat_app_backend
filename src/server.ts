@@ -16,10 +16,6 @@ const io = new Server(server, {
   },
 });
 
-interface HandshakeAuthObject {
-  user: string;
-}
-
 io.use((socket, next) => {
   try {
     //console.log(socket.handshake.headers);
